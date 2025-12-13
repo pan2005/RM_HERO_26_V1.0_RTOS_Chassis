@@ -127,7 +127,7 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  can_bsp_init();
+  BSP_CAN_Init();
 
   usart_tx_dma_init(&huart1);
   remote_control_init();

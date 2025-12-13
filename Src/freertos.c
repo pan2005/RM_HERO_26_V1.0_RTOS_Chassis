@@ -148,7 +148,7 @@ void MX_FREERTOS_Init(void) {
   testHandle = osThreadNew(test_task, NULL, &test_attributes);
   //print_dataHandle = osThreadNew(print_task,NULL,&print_attributes);
  //cybergearHandle = osThreadNew(cybergear_task,NULL,&cybergear_attributes);
-  LKMotorHandle = osThreadNew(LK_Motor_testtask,NULL,&LKmotor_attributes);
+  //LKMotorHandle = osThreadNew(LK_Motor_testtask,NULL,&LKmotor_attributes);
   //DaemonHandle = osThreadNew(Daemon_Task,NULL,&Daemon_attributes);
   //Sup_capHandle = osThreadNew(Super_capacitor_Task,NULL,&Sup_cap_attributes);
   Chassis_Handel = osThreadNew(chassis_control_task,NULL,&Chassis_attributes);
