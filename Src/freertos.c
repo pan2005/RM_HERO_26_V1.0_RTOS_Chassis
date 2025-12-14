@@ -100,6 +100,12 @@ const osThreadAttr_t Chassis_attributes = {
   .priority = (osPriority_t) osPriorityHigh,
 };
 
+osThreadId_t Shoot_Handel;
+const osThreadAttr_t Shoot_attributes = {
+  .name = "Shoot",
+  .stack_size = 256 * 2,
+  .priority = (osPriority_t) osPriorityHigh,
+};
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
@@ -116,6 +122,7 @@ extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 void chassis_test_task(void * argument);
 void chassis_control_task();
+void shoot_task();
 
 /**
   * @brief  FreeRTOS initialization
@@ -148,10 +155,11 @@ void MX_FREERTOS_Init(void) {
   testHandle = osThreadNew(test_task, NULL, &test_attributes);
   //print_dataHandle = osThreadNew(print_task,NULL,&print_attributes);
  //cybergearHandle = osThreadNew(cybergear_task,NULL,&cybergear_attributes);
-  LKMotorHandle = osThreadNew(LK_Motor_testtask,NULL,&LKmotor_attributes);
+  //LKMotorHandle = osThreadNew(LK_Motor_testtask,NULL,&LKmotor_attributes);
   //DaemonHandle = osThreadNew(Daemon_Task,NULL,&Daemon_attributes);
   //Sup_capHandle = osThreadNew(Super_capacitor_Task,NULL,&Sup_cap_attributes);
-  //Chassis_Handel = osThreadNew(chassis_control_task,NULL,&Chassis_attributes);
+  Chassis_Handel = osThreadNew(chassis_control_task,NULL,&Chassis_attributes);
+  Shoot_Handel = osThreadNew(shoot_task,NULL,&Shoot_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

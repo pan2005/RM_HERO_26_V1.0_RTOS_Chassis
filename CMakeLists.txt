@@ -60,7 +60,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         algorithm/pid.c
         algorithm/pid.h
         applications/DJI_Motor.c
-        applications/DJI_Motor.h)
+        applications/DJI_Motor.h
+        Tasks/shoot_task.c
+        Tasks/shoot_task.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
