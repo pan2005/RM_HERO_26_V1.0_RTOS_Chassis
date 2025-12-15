@@ -128,7 +128,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   BSP_CAN_Init();
 
-  usart_tx_dma_init(&huart1);
+
   remote_control_init();
   HAL_Delay(100);
   local_rc_ctrl = get_remote_control_point();

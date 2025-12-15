@@ -68,7 +68,7 @@ void LK_Motor_Init(LK_Motor_t *motor, CAN_HandleTypeDef *hcan, uint8_t id)
     // 领控电机反馈 ID 通常是 0x140 + ID (需确认手册)
     uint32_t rx_id = LK9025_Single_StdId + id - 1;
 
-    BSP_CAN_RegisterRxCallback(hcan, rx_id, _lk_motor_decode_callback, motor);
+    BSP_CAN_RegisterRxCallback(hcan, rx_id,CAN_ID_STD, _lk_motor_decode_callback, motor);
 }
 
 void LK_Motor_SpeedControl(LK_Motor_t *motor, int32_t speed)
@@ -86,7 +86,7 @@ void LK_Motor_SpeedControl(LK_Motor_t *motor, int32_t speed)
     // 发送 ID: 0x140 + ID
     uint32_t tx_id = LK9025_Single_StdId + motor->id;
 
-    BSP_CAN_SendMsg(motor->hcan, tx_id, tx_data, 8);
+    BSP_CAN_SendMsg(motor->hcan, tx_id, CAN_ID_STD,tx_data, 8);
 }
 
 void LK_Motor_SingleLoop_AngleControl1(LK_Motor_t *motor ,uint16_t angleControl,uint8_t Spin_direction) {
@@ -103,7 +103,7 @@ void LK_Motor_SingleLoop_AngleControl1(LK_Motor_t *motor ,uint16_t angleControl,
     // 发送 ID: 0x140 + ID
     uint32_t tx_id = LK9025_Single_StdId + motor->id;
 
-    BSP_CAN_SendMsg(motor->hcan, tx_id, tx_data, 8);
+    BSP_CAN_SendMsg(motor->hcan, tx_id,CAN_ID_STD, tx_data, 8);
 
 }
 
@@ -123,7 +123,7 @@ void LK_Motor_SingleLoop_AngleControl2(LK_Motor_t *motor ,uint16_t angleControl,
     // 发送 ID: 0x140 + ID
     uint32_t tx_id = LK9025_Single_StdId + motor->id;
 
-    BSP_CAN_SendMsg(motor->hcan, tx_id, tx_data, 8);
+    BSP_CAN_SendMsg(motor->hcan, tx_id,CAN_ID_STD, tx_data, 8);
 
 }
 
@@ -134,7 +134,7 @@ void LK_Motor_Increment_AngleControl1(LK_Motor_t *motor ,int32_t angleControl){
     tx_data[5] = (angleControl >> 8) & 0xFF;
     tx_data[6] = (angleControl >> 16) & 0xFF;
     tx_data[7] = (angleControl >> 24) & 0xFF;
-    BSP_CAN_SendMsg(motor->hcan, LK9025_Single_StdId + motor->id, tx_data, 8);
+    BSP_CAN_SendMsg(motor->hcan, LK9025_Single_StdId + motor->id, CAN_ID_STD,tx_data, 8);
 }
 void LK_Motor_Increment_AngleControl2(LK_Motor_t *motor ,int32_t angleControl,uint16_t maxSpeed){
     uint8_t tx_data[8] = {0};
@@ -145,7 +145,7 @@ void LK_Motor_Increment_AngleControl2(LK_Motor_t *motor ,int32_t angleControl,ui
     tx_data[5] = (angleControl >> 8) & 0xFF;
     tx_data[6] = (angleControl >> 16) & 0xFF;
     tx_data[7] = (angleControl >> 24) & 0xFF;
-    BSP_CAN_SendMsg(motor->hcan, LK9025_Single_StdId + motor->id, tx_data, 8);
+    BSP_CAN_SendMsg(motor->hcan, LK9025_Single_StdId + motor->id,CAN_ID_STD, tx_data, 8);
 }
 
 void LK_Motor_testtask(void * pvParameters) {

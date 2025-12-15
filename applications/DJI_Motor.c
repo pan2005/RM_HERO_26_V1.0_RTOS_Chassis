@@ -34,7 +34,7 @@ void DJI_Motor_Init(dji_motor_object_t *motor, CAN_HandleTypeDef *hcan, uint32_t
     motor->measure.temperate = 0;
 
     // 向 BSP 层注册：当收到 rx_id 时，调用 _dji_motor_decode_callback，并将 motor 指针传回去
-    BSP_CAN_RegisterRxCallback(hcan, rx_id, _dji_motor_decode_callback, motor);
+    BSP_CAN_RegisterRxCallback(hcan, rx_id,CAN_ID_STD, _dji_motor_decode_callback, motor);
 }
 
 /**
@@ -53,7 +53,7 @@ void DJI_Motor_SendGroup_0x200(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, 
     data[6] = c4 >> 8;
     data[7] = c4;
 
-    BSP_CAN_SendMsg(hcan, 0x200, data, 8);
+    BSP_CAN_SendMsg(hcan, 0x200,CAN_ID_STD, data, 8);
 }
 
 void DJI_Motor_SendGroup_0x1FF(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4) {
@@ -67,5 +67,5 @@ void DJI_Motor_SendGroup_0x1FF(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, 
     data[5] = c3;
     data[6] = c4 >> 8;
     data[7] = c4;
-    BSP_CAN_SendMsg(hcan, 0x1FF, data, 8);
+    BSP_CAN_SendMsg(hcan, 0x1FF,CAN_ID_STD, data, 8);
 }
