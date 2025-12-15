@@ -28,7 +28,7 @@ void communication_with_gimbal_task(void * argument) {
     com_with_gimbal_init();
     while (1) {
         position += local_rc_ctrl->rc.ch[1] / 660.0;
-        Protocol_Pack_GimbalInfo(&gimbal_info, tx_buf, &tx_len);
+        Protocol_Pack_GimbalInfo(&gimbal_info, tx_buf, &tx_len)
         usart_tx_binary(&huart1, tx_buf, tx_len);
 
     }
