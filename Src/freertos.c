@@ -60,6 +60,19 @@ const osThreadAttr_t test_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+const osThreadAttr_t uart_com_attributes = {
+  .name = "test",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh - 1,
+};
+
+const osThreadAttr_t chassis_task_attributes = {
+  .name = "chassis_task",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh ,
+};
+
+
 
 /* USER CODE END FunctionPrototypes */
 
