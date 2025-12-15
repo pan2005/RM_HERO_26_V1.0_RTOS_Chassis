@@ -33,6 +33,17 @@ void usart1_init(void)
     // 初始状态：DMA 指向 Buffer[0]
     rx_buf_idx = 0;
 
+    __HAL_DMA_DISABLE(huart1.hdmatx);
+
+    while(huart1.hdmatx->Instance->CR & DMA_SxCR_EN)
+    {
+        __HAL_DMA_DISABLE(huart1.hdmatx);
+    }
+
+    huart1.hdmatx->Instance->PAR = (uint32_t)&(huart1.Instance->DR);
+    huart1.hdmatx->Instance->M0AR = (uint32_t)(NULL);
+    huart1.hdmatx->Instance->NDTR = 0;
+
     // 启动接收
     // 注意：这里传入的是 usart1_rx_buffers[0]
     HAL_UARTEx_ReceiveToIdle_DMA(&huart1, usart1_rx_buffers[rx_buf_idx], USART1_RX_BUF_SIZE);
@@ -98,14 +109,18 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 
 static void usart_tx_dma_enable(UART_HandleTypeDef* huart, uint8_t *data, uint16_t len)
 {
-    if (huart == NULL || huart->hdmatx == NULL) return;
     __HAL_DMA_DISABLE(huart->hdmatx);
-    while(huart->hdmatx->Instance->CR & DMA_SxCR_EN) {
+
+    while(huart->hdmatx->Instance->CR & DMA_SxCR_EN)
+    {
         __HAL_DMA_DISABLE(huart->hdmatx);
     }
-    __HAL_DMA_CLEAR_FLAG(huart->hdmatx, DMA_HISR_TCIF7); // 注意检查是否对应 Stream7
+
+    __HAL_DMA_CLEAR_FLAG(huart->hdmatx, DMA_HISR_TCIF7);
+
     huart->hdmatx->Instance->M0AR = (uint32_t)(data);
     __HAL_DMA_SET_COUNTER(huart->hdmatx, len);
+
     __HAL_DMA_ENABLE(huart->hdmatx);
 }
 

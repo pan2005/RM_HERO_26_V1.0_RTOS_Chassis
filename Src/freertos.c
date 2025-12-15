@@ -29,6 +29,8 @@
 #include "CAN_receive.h"
 #include "remote_control.h"
 #include "chassis_control_task.h"
+#include "com_with_gimbal.h"
+#include "shoot_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,20 +60,30 @@ const osThreadAttr_t test_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 
+
+
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+osThreadId_t Com_Handle;
 const osThreadAttr_t uart_com_attributes = {
   .name = "test",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh - 1,
 };
 
+osThreadId_t Chassis_Handle;
 const osThreadAttr_t chassis_task_attributes = {
   .name = "chassis_task",
-  .stack_size = 256 * 4,
+  .stack_size = 256 * 2,
   .priority = (osPriority_t) osPriorityHigh ,
 };
 
+osThreadId_t Shoot_Handle;
+const osThreadAttr_t shoot_task_attributes = {
+  .name = "chassis_task",
+  .stack_size = 256 * 2,
+  .priority = (osPriority_t) osPriorityHigh ,
+};
 
 
 /* USER CODE END FunctionPrototypes */
@@ -110,6 +122,9 @@ void MX_FREERTOS_Init(void) {
   /* Create the thread(s) */
   /* creation of test */
   testHandle = osThreadNew(test_task, NULL, &test_attributes);
+  Chassis_Handle = osThreadNew(chassis_control_task,NULL,&chassis_task_attributes);
+  Shoot_Handle = osThreadNew(shoot_task,NULL,&shoot_task_attributes);
+  Com_Handle = osThreadNew(communication_with_gimbal_task,NULL,&uart_com_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
