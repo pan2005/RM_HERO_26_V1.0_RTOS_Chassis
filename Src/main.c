@@ -114,7 +114,7 @@ int main(void)
   MX_TIM5_Init();
   MX_USART3_UART_Init();
   MX_TIM8_Init();
- MX_CRC_Init();
+  MX_CRC_Init();
   MX_RNG_Init();
   MX_I2C2_Init();
   MX_I2C3_Init();
@@ -125,7 +125,6 @@ int main(void)
   MX_TIM10_Init();
   MX_USART1_UART_Init();
   MX_USART6_UART_Init();
-  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   BSP_CAN_Init();
 

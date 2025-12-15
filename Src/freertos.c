@@ -54,75 +54,19 @@ extern const RC_ctrl_t * local_rc_ctrl;
 osThreadId_t testHandle;
 const osThreadAttr_t test_attributes = {
   .name = "test",
-  .stack_size = 128 ,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
-
-osThreadId_t print_dataHandle;
-const osThreadAttr_t print_attributes = {
-  .name = "print_data",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
-};
-
-osThreadId_t cybergearHandle;
-const osThreadAttr_t cybergear_attributes = {
-  .name = "Cybergear",
-  .stack_size = 256,
-  .priority = (osPriority_t) osPriorityHigh,
-};
-osThreadId_t LKMotorHandle;
-const osThreadAttr_t LKmotor_attributes = {
-  .name = "Lkmotor",
-  .stack_size = 256,
-  .priority = (osPriority_t) osPriorityHigh,
-};
-
-osThreadId_t DaemonHandle;
-const osThreadAttr_t Daemon_attributes = {
-  .name = "Daemon",
-  .stack_size =  256 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
-};
-
-osThreadId_t Sup_capHandle;
- const osThreadAttr_t Sup_cap_attributes = {
-   .name = "Daemon",
-   .stack_size =  256,
-   .priority = (osPriority_t) osPriorityHigh,
- };
-
-osThreadId_t Chassis_Handel;
-const osThreadAttr_t Chassis_attributes = {
-  .name = "Chassis",
-  .stack_size = 256 * 2,
-  .priority = (osPriority_t) osPriorityHigh,
-};
-
-osThreadId_t Shoot_Handel;
-const osThreadAttr_t Shoot_attributes = {
-  .name = "Shoot",
-  .stack_size = 256 * 2,
-  .priority = (osPriority_t) osPriorityHigh,
-};
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
 
 void test_task(void *argument);
-void print_task(void *argument);
-void cybergear_task(void *argument);
-void LK_Motor_testtask(void* argument) ;
-void Daemon_Task(void *pvParameters);
-void Super_capacitor_Task(void *pvParameter);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
-void chassis_test_task(void * argument);
-void chassis_control_task();
-void shoot_task();
 
 /**
   * @brief  FreeRTOS initialization
@@ -153,13 +97,6 @@ void MX_FREERTOS_Init(void) {
   /* Create the thread(s) */
   /* creation of test */
   testHandle = osThreadNew(test_task, NULL, &test_attributes);
-  //print_dataHandle = osThreadNew(print_task,NULL,&print_attributes);
- //cybergearHandle = osThreadNew(cybergear_task,NULL,&cybergear_attributes);
-  //LKMotorHandle = osThreadNew(LK_Motor_testtask,NULL,&LKmotor_attributes);
-  //DaemonHandle = osThreadNew(Daemon_Task,NULL,&Daemon_attributes);
-  //Sup_capHandle = osThreadNew(Super_capacitor_Task,NULL,&Sup_cap_attributes);
-  Chassis_Handel = osThreadNew(chassis_control_task,NULL,&Chassis_attributes);
-  Shoot_Handel = osThreadNew(shoot_task,NULL,&Shoot_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -181,7 +118,7 @@ void MX_FREERTOS_Init(void) {
 __weak void test_task(void *argument)
 {
   /* init code for USB_DEVICE */
- //MX_USB_DEVICE_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN test_task */
   /* Infinite loop */
   for(;;)
