@@ -49,6 +49,8 @@ void chassis_control_task() {
        PID_Init(&chassis_pid[i],5,0.0,0.0,1000);
    }
 
+    osDelay(100);
+
     while (1) {
 
             velocity_turn = local_rc_ctrl->rc.ch[0] * 12;

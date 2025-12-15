@@ -26,6 +26,7 @@ void shoot_task() {
     PID_Init(&shoot_pid,7,0.1,0.1,1000);
     int16_t I = 0;
     int16_t velocity = 0;
+    osDelay(100);
     while (1) {
         velocity = local_rc_ctrl->rc.ch[4] * 10;
         I  = PID_Caculate(&shoot_pid,velocity,shoot_motor.measure.speed_rpm);

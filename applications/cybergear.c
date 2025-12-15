@@ -322,7 +322,7 @@ void motor_controlmode(MI_Motor *Motor,float torque, float MechPosition, float s
 
 void cybergear_task(void * argument) {
 	mi_motor[1].error_code = 1;
-	can_bsp_init();
+	//can_bsp_init();
 	HAL_Delay(1000);
 	while(mi_motor[1].error_code != 0) {
 		init_cybergear(&mi_motor[1],0x7F,Speed_mode);
