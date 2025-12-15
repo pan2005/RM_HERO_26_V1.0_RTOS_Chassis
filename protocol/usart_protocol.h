@@ -25,13 +25,13 @@
 typedef struct {
     float pitch_position; // 4字节
     uint8_t shoot_gear;   // 1字节
-} ChassisInfo_t;
+} GimbalInfo_t;
 
 #pragma pack()
 
 // --- 函数声明 ---
-void Protocol_Pack_ChassisInfo(ChassisInfo_t *info, uint8_t *tx_buf, uint16_t *tx_len);
-uint8_t Protocol_Parse(uint8_t *rx_buf, uint16_t rx_len, ChassisInfo_t *out_info);
+void Protocol_Pack_GimbalInfo(GimbalInfo_t *info, uint8_t *tx_buf, uint16_t *tx_len);
+uint8_t Protocol_Parse(uint8_t *rx_buf, uint16_t rx_len, GimbalInfo_t *out_info);
 
 
 #endif //USART_PROTOCOL_H

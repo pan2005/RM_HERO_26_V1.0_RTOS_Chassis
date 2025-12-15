@@ -64,7 +64,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         Tasks/shoot_task.c
         Tasks/shoot_task.h
         protocol/usart_protocol.c
-        protocol/usart_protocol.h)
+        protocol/usart_protocol.h
+        Tasks/com_with_gimbal.c
+        Tasks/com_with_gimbal.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

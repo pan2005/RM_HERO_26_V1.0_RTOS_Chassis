@@ -4,95 +4,121 @@
 
 extern UART_HandleTypeDef huart1;
 extern DMA_HandleTypeDef hdma_usart1_tx;
-extern DMA_HandleTypeDef hdma_usart1_rx; // 确保在main.c中有定义Rx DMA
+extern DMA_HandleTypeDef hdma_usart1_rx;
 
-// 接收相关变量
-static uint8_t rx_buffer[USART1_RX_BUF_SIZE];
-static usart_rx_callback_t rx_callback = NULL;
+// ==========================================
+// 1. 变量定义 (双缓冲)
+// ==========================================
 
-// =============================================
-//               发送部分 (TX)
-// =============================================
+// 定义二维数组作为双缓冲: [0][...] 和 [1][...]
+static uint8_t usart1_rx_buffers[USART1_BUF_COUNT][USART1_RX_BUF_SIZE];
 
-// 底层DMA配置函数 (保留你的逻辑)
-static void usart_dma_config_and_start(UART_HandleTypeDef* huart, uint8_t *data, uint16_t len)
+// 当前正在使用的缓冲区索引 (0 或 1)
+static uint8_t rx_buf_idx = 0;
+
+// 回调函数
+static usart_rx_callback_t usart1_rx_callback = NULL;
+
+
+// ==========================================
+// 2. 初始化与设置
+// ==========================================
+
+void usart1_init(void)
+{
+    // 确保开启 DMA 标志位
+    SET_BIT(huart1.Instance->CR3, USART_CR3_DMAR);
+    SET_BIT(huart1.Instance->CR3, USART_CR3_DMAT);
+
+    // 初始状态：DMA 指向 Buffer[0]
+    rx_buf_idx = 0;
+
+    // 启动接收
+    // 注意：这里传入的是 usart1_rx_buffers[0]
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, usart1_rx_buffers[rx_buf_idx], USART1_RX_BUF_SIZE);
+
+    // 关闭半传输中断 (防止还没收完就进中断)
+    __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+}
+
+void usart1_register_callback(usart_rx_callback_t callback)
+{
+    usart1_rx_callback = callback;
+}
+
+
+// ==========================================
+// 3. 接收中断回调 (乒乓逻辑核心)
+// ==========================================
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+    if (huart->Instance == USART1)
+    {
+        // 1. 保存当前处理完的缓冲区索引 (Old)
+        uint8_t finished_idx = rx_buf_idx;
+
+        // 2. 计算下一个缓冲区的索引 (Next): 0->1, 1->0
+        rx_buf_idx = (rx_buf_idx + 1) % USART1_BUF_COUNT;
+
+        // 3. 【关键】立即重启 DMA，指向“下一个”缓冲区
+        //    这样在 CPU 处理旧数据时，DMA 已经准备好接收新数据了，实现无缝衔接。
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, usart1_rx_buffers[rx_buf_idx], USART1_RX_BUF_SIZE);
+        __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+
+        // 4. 处理刚刚收到的数据 (使用 Old 索引)
+        if (usart1_rx_callback != NULL && Size > 0)
+        {
+            // 可选：为了调试方便，在末尾截断 (非必须)
+            if (Size < USART1_RX_BUF_SIZE) {
+                usart1_rx_buffers[finished_idx][Size] = 0;
+            }
+
+            // 调用应用层回调，传入刚才填满的那个 Buffer
+            usart1_rx_callback(usart1_rx_buffers[finished_idx], Size);
+        }
+    }
+}
+
+// 错误处理
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1)
+    {
+        // 如果出错，复位索引并重启接收
+        rx_buf_idx = 0;
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, usart1_rx_buffers[0], USART1_RX_BUF_SIZE);
+    }
+}
+
+
+// ==========================================
+// 4. 发送部分 (保持原样)
+// ==========================================
+
+static void usart_tx_dma_enable(UART_HandleTypeDef* huart, uint8_t *data, uint16_t len)
 {
     if (huart == NULL || huart->hdmatx == NULL) return;
-
-    // 1. 禁用DMA
     __HAL_DMA_DISABLE(huart->hdmatx);
     while(huart->hdmatx->Instance->CR & DMA_SxCR_EN) {
         __HAL_DMA_DISABLE(huart->hdmatx);
     }
-
-    // 2. 清除标志位 (TCIF7 是 F4 USART1_TX Stream7 的标志，如果换芯片需修改)
-    __HAL_DMA_CLEAR_FLAG(huart->hdmatx, DMA_HISR_TCIF7);
-
-    // 3. 配置地址和长度
+    __HAL_DMA_CLEAR_FLAG(huart->hdmatx, DMA_HISR_TCIF7); // 注意检查是否对应 Stream7
     huart->hdmatx->Instance->M0AR = (uint32_t)(data);
     __HAL_DMA_SET_COUNTER(huart->hdmatx, len);
-
-    // 4. 使能DMA
     __HAL_DMA_ENABLE(huart->hdmatx);
 }
 
-// 打印函数 (文本)
+void usart_tx_binary(UART_HandleTypeDef* huart, uint8_t *data, uint16_t len) {
+    usart_tx_dma_enable(huart, data, len);
+}
+
 void usart_printf(UART_HandleTypeDef* huart, const char *fmt, ...) {
-    static uint8_t tx_buf_text[256];
+    static uint8_t tx_buffer[256];
     static va_list ap;
     static uint16_t len;
-
     va_start(ap, fmt);
-    len = vsnprintf((char *)tx_buf_text, 256, fmt, ap);
+    len = vsnprintf((char *)tx_buffer, 256, fmt, ap);
     va_end(ap);
-
-    usart_dma_config_and_start(huart, tx_buf_text, len);
-}
-
-// 二进制发送函数 (用于协议)
-void usart_tx_binary(UART_HandleTypeDef* huart, uint8_t *data, uint16_t len) {
-    // 直接调用底层配置，这里不使用静态buffer，
-    // 因为调用者(协议层)通常会提供buffer，或者在此处加临界区保护
-    usart_dma_config_and_start(huart, data, len);
-}
-
-// =============================================
-//               接收部分 (RX)
-// =============================================
-
-void usart1_init(void) {
-    // 确保开启了 IDLE 和 DMA 标志
-    SET_BIT(huart1.Instance->CR3, USART_CR3_DMAR);
-    SET_BIT(huart1.Instance->CR3, USART_CR3_DMAT);
-
-    // 启动接收 (IDLE中断模式)
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_buffer, USART1_RX_BUF_SIZE);
-
-    // 关闭半传输中断
-    __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
-}
-
-void usart1_register_callback(usart_rx_callback_t callback) {
-    rx_callback = callback;
-}
-
-// HAL库回调函数：当DMA满或IDLE中断触发时自动调用
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
-    if (huart->Instance == USART1) {
-        // 1. 回调给应用层
-        if (rx_callback != NULL && Size > 0) {
-            rx_callback(rx_buffer, Size);
-        }
-
-        // 2. 重启接收 (指针复位到0)
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_buffer, USART1_RX_BUF_SIZE);
-        __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
-    }
-}
-
-// 错误处理：防止溢出导致串口死锁
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == USART1) {
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_buffer, USART1_RX_BUF_SIZE);
-    }
+    usart_tx_dma_enable(huart, tx_buffer, len);
 }
