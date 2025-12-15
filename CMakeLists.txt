@@ -62,7 +62,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         applications/DJI_Motor.c
         applications/DJI_Motor.h
         Tasks/shoot_task.c
-        Tasks/shoot_task.h)
+        Tasks/shoot_task.h
+        protocol/usart_protocol.c
+        protocol/usart_protocol.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -83,6 +85,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         applications
         boards
         Tasks
+        protocol
     # Add user defined include paths
 )
 

@@ -1,164 +1,98 @@
-//
-// Created by Admin on 2025/11/4.
-//
-
 #include "bsp_usart.h"
-#include "main.h"
 #include <stdarg.h>
-#include <stdio.h>
+#include <string.h>
 
-#include "cmsis_os2.h"
-#include "cybergear.h"
-#include "LKMF9025.h"
-#include "remote_control.h"
-#include "Supercapacitor.h"
 extern UART_HandleTypeDef huart1;
 extern DMA_HandleTypeDef hdma_usart1_tx;
-extern UART_HandleTypeDef huart6;
-extern DMA_HandleTypeDef hdma_usart6_rx;
-extern DMA_HandleTypeDef hdma_usart6_tx;
-extern const RC_ctrl_t* local_rc_ctrl;
+extern DMA_HandleTypeDef hdma_usart1_rx; // 确保在main.c中有定义Rx DMA
 
-void usart_tx_dma_init(UART_HandleTypeDef* huart)
+// 接收相关变量
+static uint8_t rx_buffer[USART1_RX_BUF_SIZE];
+static usart_rx_callback_t rx_callback = NULL;
+
+// =============================================
+//               发送部分 (TX)
+// =============================================
+
+// 底层DMA配置函数 (保留你的逻辑)
+static void usart_dma_config_and_start(UART_HandleTypeDef* huart, uint8_t *data, uint16_t len)
 {
+    if (huart == NULL || huart->hdmatx == NULL) return;
 
-    //enable the DMA transfer for the receiver and tramsmit request
-    //Ê¹ÄÜDMA´®¿Ú½ÓÊÕºÍ·¢ËÍ
-    if (huart == NULL || huart->hdmatx == NULL || huart->Instance == NULL) {
-        return; // 或者返回错误代码
-    }
-    SET_BIT(huart->Instance->CR3, USART_CR3_DMAR);
-    SET_BIT(huart->Instance->CR3, USART_CR3_DMAT);
-
-    //disable DMA
-    //Ê§Ð§DMA
+    // 1. 禁用DMA
     __HAL_DMA_DISABLE(huart->hdmatx);
-
-    while(huart->hdmatx->Instance->CR & DMA_SxCR_EN)
-    {
+    while(huart->hdmatx->Instance->CR & DMA_SxCR_EN) {
         __HAL_DMA_DISABLE(huart->hdmatx);
     }
 
-    huart->hdmatx->Instance->PAR = (uint32_t)&(huart->Instance->DR);
-    huart->hdmatx->Instance->M0AR = (uint32_t)(NULL);
-    huart->hdmatx->Instance->NDTR = 0;
-
-
-}
-void usart_tx_dma_enable(UART_HandleTypeDef* huart,uint8_t *data, uint16_t len)
-{
-    //disable DMA
-    //Ê§Ð§DMA
-    __HAL_DMA_DISABLE(huart->hdmatx);
-
-    while(huart->hdmatx->Instance->CR & DMA_SxCR_EN)
-    {
-        __HAL_DMA_DISABLE(huart->hdmatx);
-    }
-
+    // 2. 清除标志位 (TCIF7 是 F4 USART1_TX Stream7 的标志，如果换芯片需修改)
     __HAL_DMA_CLEAR_FLAG(huart->hdmatx, DMA_HISR_TCIF7);
 
+    // 3. 配置地址和长度
     huart->hdmatx->Instance->M0AR = (uint32_t)(data);
     __HAL_DMA_SET_COUNTER(huart->hdmatx, len);
 
+    // 4. 使能DMA
     __HAL_DMA_ENABLE(huart->hdmatx);
 }
 
-
-
-
-void usart_printf(UART_HandleTypeDef* huart,const char *fmt, ...) {
-    static uint8_t tx_buffer[256];
+// 打印函数 (文本)
+void usart_printf(UART_HandleTypeDef* huart, const char *fmt, ...) {
+    static uint8_t tx_buf_text[256];
     static va_list ap;
     static uint16_t len;
 
-    va_start(ap,fmt);
-
-    len = vsprintf((char *)tx_buffer,fmt,ap);
-
+    va_start(ap, fmt);
+    len = vsnprintf((char *)tx_buf_text, 256, fmt, ap);
     va_end(ap);
 
-    usart_tx_dma_enable(huart,tx_buffer,len);
+    usart_dma_config_and_start(huart, tx_buf_text, len);
 }
 
-
-void usart6_init(uint8_t *rx1_buf, uint8_t *rx2_buf, uint16_t dma_buf_num)
-{
-
-    //enable the DMA transfer for the receiver and tramsmit request
-    //Ê¹ÄÜDMA´®¿Ú½ÓÊÕºÍ·¢ËÍ
-    SET_BIT(huart6.Instance->CR3, USART_CR3_DMAR);
-    SET_BIT(huart6.Instance->CR3, USART_CR3_DMAT);
-
-    //enalbe idle interrupt
-    //Ê¹ÄÜ¿ÕÏÐÖÐ¶Ï
-    __HAL_UART_ENABLE_IT(&huart6, UART_IT_IDLE);
-
-
-
-    //disable DMA
-    //Ê§Ð§DMA
-    __HAL_DMA_DISABLE(&hdma_usart6_rx);
-
-    while(hdma_usart6_rx.Instance->CR & DMA_SxCR_EN)
-    {
-        __HAL_DMA_DISABLE(&hdma_usart6_rx);
-    }
-
-    __HAL_DMA_CLEAR_FLAG(&hdma_usart6_rx, DMA_LISR_TCIF1);
-
-    hdma_usart6_rx.Instance->PAR = (uint32_t) & (USART6->DR);
-    //memory buffer 1
-    //ÄÚ´æ»º³åÇø1
-    hdma_usart6_rx.Instance->M0AR = (uint32_t)(rx1_buf);
-    //memory buffer 2
-    //ÄÚ´æ»º³åÇø2
-    hdma_usart6_rx.Instance->M1AR = (uint32_t)(rx2_buf);
-    //data length
-    //Êý¾Ý³¤¶È
-    __HAL_DMA_SET_COUNTER(&hdma_usart6_rx, dma_buf_num);
-
-    //enable double memory buffer
-    //Ê¹ÄÜË«»º³åÇø
-    SET_BIT(hdma_usart6_rx.Instance->CR, DMA_SxCR_DBM);
-
-    //enable DMA
-    //Ê¹ÄÜDMA
-    __HAL_DMA_ENABLE(&hdma_usart6_rx);
-
-
-    //disable DMA
-    //Ê§Ð§DMA
-    __HAL_DMA_DISABLE(&hdma_usart6_tx);
-
-    while(hdma_usart6_tx.Instance->CR & DMA_SxCR_EN)
-    {
-        __HAL_DMA_DISABLE(&hdma_usart6_tx);
-    }
-
-    hdma_usart6_tx.Instance->PAR = (uint32_t) & (USART6->DR);
-
+// 二进制发送函数 (用于协议)
+void usart_tx_binary(UART_HandleTypeDef* huart, uint8_t *data, uint16_t len) {
+    // 直接调用底层配置，这里不使用静态buffer，
+    // 因为调用者(协议层)通常会提供buffer，或者在此处加临界区保护
+    usart_dma_config_and_start(huart, data, len);
 }
 
+// =============================================
+//               接收部分 (RX)
+// =============================================
 
+void usart1_init(void) {
+    // 确保开启了 IDLE 和 DMA 标志
+    SET_BIT(huart1.Instance->CR3, USART_CR3_DMAR);
+    SET_BIT(huart1.Instance->CR3, USART_CR3_DMAT);
 
+    // 启动接收 (IDLE中断模式)
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_buffer, USART1_RX_BUF_SIZE);
 
+    // 关闭半传输中断
+    __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+}
 
+void usart1_register_callback(usart_rx_callback_t callback) {
+    rx_callback = callback;
+}
 
-extern  LK_Motor_t YAW_Motor;
-extern MI_Motor mi_motor[4];
-extern Super_Cap_Return_Pack super_cap_return_pack;
-void print_task(void *arument) {
+// HAL库回调函数：当DMA满或IDLE中断触发时自动调用
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+    if (huart->Instance == USART1) {
+        // 1. 回调给应用层
+        if (rx_callback != NULL && Size > 0) {
+            rx_callback(rx_buffer, Size);
+        }
 
-    static uint32_t counter;
-
-
-   // usart1_tx_dma_init();
-    osDelay(100);
-
-    while (1) {
-        usart_printf(&huart1,"%d:Tempreture:%d,Yaw:%d\r\n",counter++,super_cap_return_pack.Temperature,YAW_Motor.speed);
-        osDelay(1000);
+        // 2. 重启接收 (指针复位到0)
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_buffer, USART1_RX_BUF_SIZE);
+        __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
     }
+}
 
+// 错误处理：防止溢出导致串口死锁
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_buffer, USART1_RX_BUF_SIZE);
+    }
 }
