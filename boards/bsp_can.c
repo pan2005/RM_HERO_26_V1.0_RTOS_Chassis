@@ -3,6 +3,7 @@
 
 /* 管理所有注册的回调函数 */
 static can_rx_hook_t rx_hooks[CAN_MAX_RX_CALLBACKS];
+
 static uint8_t hook_count = 0;
 
 extern CAN_HandleTypeDef hcan1;
@@ -120,6 +121,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     } else {
         recv_id = rx_header.ExtId;
     }
+
+
 
     // 2. 遍历注册表
     for (uint8_t i = 0; i < hook_count; i++)

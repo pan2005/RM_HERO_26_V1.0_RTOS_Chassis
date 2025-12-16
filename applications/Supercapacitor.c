@@ -5,6 +5,7 @@
 #include "Supercapacitor.h"
 #include "can.h"
 #include "cmsis_os2.h"
+#include "bsp_can.h"
 
 
 CAN_TxHeaderTypeDef Super_cap_txmsg;
@@ -25,6 +26,8 @@ Super_Cap_Return_Pack super_cap_return_pack;
 
 // 初始化一个控制包实例
 void Sup_cap_init(void) {
+    BSP_CAN_RegisterRxCallback(hcan1, 0x301, CAN_ID_STD, , &Sup_Cap_Control_Pack)
+
 
 }
 void Sup_cap_send_cmd(Super_Cap_Control_Pack *  Sup_Cap_Control_Packet) {
