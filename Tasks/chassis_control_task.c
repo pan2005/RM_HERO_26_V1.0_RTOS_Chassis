@@ -46,7 +46,7 @@ void chassis_control_task() {
     int16_t I3 = 0;
     int16_t I4 = 0;
    for (int i = 0; i < 4; i++) {
-       PID_Init(&chassis_pid[i],5,0.0,0.0,1000);
+       PID_Init(&chassis_pid[i],5,0.0,0.0,1000,8000);
    }
 
     osDelay(100);

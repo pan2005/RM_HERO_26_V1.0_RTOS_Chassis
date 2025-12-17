@@ -24,6 +24,6 @@ typedef struct PID {
 
 }PID_t;
 
-void PID_Init(PID_t *pid,float Kp,float Ki,float Kd,float intergral_limit);
+void PID_Init(PID_t *pid,float Kp,float Ki,float Kd,float intergral_limit,int16_t output_Limit);
 int16_t PID_Caculate(PID_t *pid, int16_t target, int16_t get);
 #endif //PID_H
