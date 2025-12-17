@@ -35,15 +35,19 @@ void communication_with_gimbal_task(void * argument) {
     GimbalInfo_t     my_info;
     com_with_gimbal_init();
     while (1) {
-         position += local_rc_ctrl->rc.ch[1] / 660.0;
+        if (switch_is_down(local_rc_ctrl->rc.s[1])) {
+            position += local_rc_ctrl->rc.ch[1] / 660.0;
+
+        }
+
          my_info.pitch_position = position;
          my_info.shoot_gear = local_rc_ctrl->rc.s[0];
          Protocol_Pack_GimbalInfo(&my_info, tx_buf, &tx_len);
          usart_tx_binary(&huart1, tx_buf, tx_len);
-        usart_printf(&huart1,"Hello\r\n");
+        //usart_printf(&huart1,"Hello\r\n");
         //usart_printf(&huart1,"%d\r\n",gimbal_info.shoot_gear);
         //usart_printf(&huart1,"hello\r\n");
-        osDelay(1000);
+        osDelay(50);
 
     }
 

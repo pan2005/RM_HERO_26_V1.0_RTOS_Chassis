@@ -26,7 +26,7 @@ Super_Cap_Return_Pack super_cap_return_pack;
 
 // 初始化一个控制包实例
 void Sup_cap_init(void) {
-    BSP_CAN_RegisterRxCallback(hcan1, 0x301, CAN_ID_STD, , &Sup_Cap_Control_Pack)
+    //BSP_CAN_RegisterRxCallback(hcan1, 0x301, CAN_ID_STD, , &Sup_Cap_Control_Pack)
 
 
 }

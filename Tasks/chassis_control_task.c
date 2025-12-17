@@ -53,7 +53,8 @@ void chassis_control_task() {
 
     while (1) {
 
-            velocity_turn = local_rc_ctrl->rc.ch[0] * 12;
+        if (switch_is_mid(local_rc_ctrl->rc.s[1])) {
+            velocity_turn = local_rc_ctrl->rc.ch[1] * 12;
             velocity_14 = local_rc_ctrl->rc.ch[2] * 10 + local_rc_ctrl->rc.ch[3] * 10;
             velocity_23 = -local_rc_ctrl->rc.ch[2] * 10 + local_rc_ctrl->rc.ch[3] * 10;
 
@@ -63,13 +64,38 @@ void chassis_control_task() {
             I4 = PID_Caculate(&chassis_pid[3],-(velocity_14 - velocity_turn),chassis_m4.measure.speed_rpm);
 
             //LK_Motor_SpeedControl(&YAW_Motor,local_rc_ctrl->rc.ch[1] * 20);
-        // 替代原来的两行代码
-            LK_Motor_SpeedControl(&YAW_Motor, local_rc_ctrl->rc.ch[1] * 20); // 根据需要调整倍数
+            // 替代原来的两行代码
+            LK_Motor_SpeedControl(&YAW_Motor, local_rc_ctrl->rc.ch[0] * 20); // 根据需要调整倍数
 
 
             DJI_Motor_SendGroup_0x200(&hcan1,I1,I2,I3,I4);
-
             osDelay(1);
+
+
+        }
+        else if (switch_is_down(local_rc_ctrl->rc.s[1])) {
+
+            velocity_14 = local_rc_ctrl->rc.ch[2] * 10 + local_rc_ctrl->rc.ch[3] * 10;
+            velocity_23 = -local_rc_ctrl->rc.ch[2] * 10 + local_rc_ctrl->rc.ch[3] * 10;
+
+            I1 = PID_Caculate(&chassis_pid[0],velocity_14 + velocity_turn,chassis_m1.measure.speed_rpm);
+            I2 = PID_Caculate(&chassis_pid[1],-(velocity_23 - velocity_turn),chassis_m2.measure.speed_rpm);
+            I3 = PID_Caculate(&chassis_pid[2],velocity_23 + velocity_turn,chassis_m3.measure.speed_rpm);
+            I4 = PID_Caculate(&chassis_pid[3],-(velocity_14 - velocity_turn),chassis_m4.measure.speed_rpm);
+
+            //LK_Motor_SpeedControl(&YAW_Motor,local_rc_ctrl->rc.ch[1] * 20);
+            // 替代原来的两行代码
+            LK_Motor_SpeedControl(&YAW_Motor, local_rc_ctrl->rc.ch[0] * 20); // 根据需要调整倍数
+
+            DJI_Motor_SendGroup_0x200(&hcan1,I1,I2,I3,I4);
+            osDelay(1);
+
+        }
+
+
+
+
+
            // LK_Motor_SpeedControl(&YAW_Motor,local_rc_ctrl->rc.ch[0] * 20);
 
 
