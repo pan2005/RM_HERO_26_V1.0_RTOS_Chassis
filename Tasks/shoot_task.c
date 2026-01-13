@@ -18,20 +18,16 @@
 
 extern CAN_HandleTypeDef hcan1;
 
-PID_t shoot_pid;
-dji_motor_object_t shoot_motor;
 
+
+extern dji_motor_object_t YAW_Motor6020;
 void shoot_task() {
-    DJI_Motor_Init(&shoot_motor,&hcan1,0x205);
-    PID_Init(&shoot_pid,7,0.1,0.1,1000,8000);
+
     int16_t I = 0;
     int16_t velocity = 0;
     osDelay(100);
     while (1) {
-        velocity = local_rc_ctrl->rc.ch[4] * 10;
-        I  = PID_Caculate(&shoot_pid,velocity,shoot_motor.measure.speed_rpm);
-        DJI_Motor_SendGroup_0x1FF(&hcan1,I,I,I,I);
-        osDelay(2);
+
     }
 
 }

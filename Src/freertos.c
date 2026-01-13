@@ -74,7 +74,7 @@ const osThreadAttr_t uart_com_attributes = {
 osThreadId_t Chassis_Handle;
 const osThreadAttr_t chassis_task_attributes = {
   .name = "chassis_task",
-  .stack_size = 256 * 2,
+  .stack_size = 256 * 12,
   .priority = (osPriority_t) osPriorityHigh ,
 };
 
@@ -123,7 +123,7 @@ void MX_FREERTOS_Init(void) {
   /* creation of test */
   testHandle = osThreadNew(test_task, NULL, &test_attributes);
   Chassis_Handle = osThreadNew(chassis_control_task,NULL,&chassis_task_attributes);
-  Shoot_Handle = osThreadNew(shoot_task,NULL,&shoot_task_attributes);
+  //Shoot_Handle = osThreadNew(shoot_task,NULL,&shoot_task_attributes);
   Com_Handle = osThreadNew(communication_with_gimbal_task,NULL,&uart_com_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */

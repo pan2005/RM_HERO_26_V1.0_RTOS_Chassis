@@ -66,7 +66,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         protocol/usart_protocol.c
         protocol/usart_protocol.h
         Tasks/com_with_gimbal.c
-        Tasks/com_with_gimbal.h)
+        Tasks/com_with_gimbal.h
+        Info/robot_global.c
+        Info/robot_global.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -88,6 +90,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         boards
         Tasks
         protocol
+        Info
     # Add user defined include paths
 )
 

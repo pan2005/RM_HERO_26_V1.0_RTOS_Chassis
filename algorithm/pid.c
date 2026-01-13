@@ -7,7 +7,7 @@
 #include "pid.h"
 
 
-void PID_Init(PID_t *pid,float Kp,float Ki,float Kd,float intergral_limit,int16_t output_Limit) {
+void PID_Init(PID_t *pid,float Kp,float Ki,float Kd,float intergral_limit,float output_Limit) {
     pid->Kp = Kp;
     pid->Ki = Ki;
     pid->Kd = Kd;
@@ -29,8 +29,8 @@ float limit_function(float limit,  float intergral) {
     return intergral;
 
 }
-int16_t PID_Caculate(PID_t *pid, int16_t target, int16_t get) {
-    int16_t error = target - get;
+float PID_Caculate(PID_t *pid, float target, float get) {
+    float error = target - get;
     pid->output = 0;
     pid->intergral += error;
     pid->output = pid->Kp * error +limit_function(pid->intergral_limit ,pid->Ki * pid->intergral)  + pid->Kd * (error - pid->last_error);
