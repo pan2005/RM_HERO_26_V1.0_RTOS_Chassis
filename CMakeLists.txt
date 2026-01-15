@@ -68,7 +68,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         Tasks/com_with_gimbal.c
         Tasks/com_with_gimbal.h
         Info/robot_global.c
-        Info/robot_global.h)
+        Info/robot_global.h
+        modules/can_motor.c
+        modules/can_motor.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -91,6 +93,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Tasks
         protocol
         Info
+        modules
     # Add user defined include paths
 )
 

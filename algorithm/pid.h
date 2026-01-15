@@ -1,29 +1,20 @@
-//
-// Created by PanZhaoHui on 25-12-7.
-//
-
 #ifndef PID_H
 #define PID_H
 
-#include "main.h"
-#define LIMIT 15000
-
-typedef struct PID {
-    float Kp;
-    float Ki;
-    float Kd;
-
-
-
-    float intergral_limit;
+typedef struct {
+    float Kp, Ki, Kd;
+    float integral_limit;
     float output_limit;
 
-    float output;
+    float target;
+    float current_measure;
+    float error;
     float last_error;
-    float intergral;
+    float integral;
+    float output;
+} PID_t;
 
-}PID_t;
+void PID_Init(PID_t *pid, float Kp, float Ki, float Kd, float i_limit, float out_limit);
+float PID_Calculate(PID_t *pid, float target, float measure);
 
-void PID_Init(PID_t *pid,float Kp,float Ki,float Kd,float intergral_limit,float output_Limit);
-float PID_Caculate(PID_t *pid, float target, float get);
-#endif //PID_H
+#endif

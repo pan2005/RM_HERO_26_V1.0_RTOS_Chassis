@@ -39,8 +39,7 @@ typedef struct
 void DJI_Motor_Init(dji_motor_object_t *motor, CAN_HandleTypeDef *hcan, uint32_t id);
 
 /* 发送函数封装 (示例：底盘4电机发送) */
-void DJI_Motor_SendGroup_0x200(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4);
-void DJI_Motor_SendGroup_0x1FF(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4);
+
 
 void GM6020_PV_init(dji_motor_object_t *motor, uint32_t motor_ID, CAN_HandleTypeDef *hcan, int para_num, ...);
 void GM6020_enable(dji_motor_object_t *motor);
