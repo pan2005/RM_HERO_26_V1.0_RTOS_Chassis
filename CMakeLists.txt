@@ -43,8 +43,6 @@ add_executable(${CMAKE_PROJECT_NAME}
         boards/bsp_usart.h
         boards/bsp_can.c
         boards/bsp_can.h
-        applications/cybergear.c
-        applications/cybergear.h
         applications/LKMF9025.c
         applications/LKMF9025.h
         applications/daemon.c
@@ -70,7 +68,26 @@ add_executable(${CMAKE_PROJECT_NAME}
         Info/robot_global.c
         Info/robot_global.h
         modules/can_motor.c
-        modules/can_motor.h)
+        modules/can_motor.h
+        boards/bsp_spi.c
+        boards/bsp_spi.h
+        modules/INS_Sensor/BMI088driver.c
+        modules/INS_Sensor/BMI088driver.h
+        modules/INS_Sensor/BMI088Middleware.c
+        modules/INS_Sensor/BMI088Middleware.h
+        modules/INS_Sensor/BMI088reg.h
+        modules/INS_Sensor/ist8310driver.c
+        modules/INS_Sensor/ist8310driver.h
+        modules/INS_Sensor/ist8310driver_middleware.c
+        modules/INS_Sensor/ist8310driver_middleware.h
+        boards/bsp_delay.c
+        boards/bsp_delay.h
+        Tasks/INS_tasks.c
+        Tasks/INS_tasks.h
+        boards/bsp_imu_pwm.c
+        boards/bsp_imu_pwm.h
+        algorithm/MahonyAHRS.c
+        algorithm/MahonyAHRS.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -94,6 +111,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         protocol
         Info
         modules
+        modules/INS_Sensor
     # Add user defined include paths
 )
 
@@ -110,4 +128,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+)
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
+        -u _printf_float
 )

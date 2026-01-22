@@ -6,6 +6,8 @@ void PID_Init(PID_t *pid, float Kp, float Ki, float Kd, float i_limit, float out
     pid->output_limit = out_limit;
     pid->integral = 0.0f;
     pid->last_error = 0.0f;
+    pid->iout = 0;
+    pid->output = 0.0f;
 }
 
 float PID_Calculate(PID_t *pid, float target, float measure) {

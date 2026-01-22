@@ -96,7 +96,8 @@ void Error_Handler(void);
 #define CS1_GYRO_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+  typedef unsigned char bool_t;
+  typedef float fp32;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

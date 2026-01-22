@@ -60,10 +60,10 @@ void chassis_control_task() {
 
     osDelay(1000);
 
-    const char test2[20] = "initing\r\n";
+//    const char test2[20] = "initing\r\n";
 
 
-    HAL_UART_Transmit(&huart6, test2, 20,100);
+  //  HAL_UART_Transmit(&huart6, test2, 20,100);
 
     PID_Init(&wheel_priv_1.speed_pid, 7.0f, 0.1f, 0.0f, 500, 16384);
     Can_Motor_Init(&wheel_motor_1, &hcan1, 0x201, M3508_Decode, M3508_Update, &wheel_priv_1);
@@ -84,8 +84,8 @@ void chassis_control_task() {
     PID_Init(&yaw_priv.pos_pid, 800.0f, 0.0f, 0.0f, 500, 5000);
     Can_Motor_Init(&yaw_motor, &hcan1, 0x206, GM6020_Decode, GM6020_Update, &yaw_priv);
 
-    const char test1[20] = "init succefully";
-    HAL_UART_Transmit(&huart6, test1, 20,100);
+    //const char test1[20] = "init succefully";
+    //HAL_UART_Transmit(&huart6, test1, 20,100);
 
 
     // DJI_Motor_Init(&chassis_m1,&hcan1,0x201);

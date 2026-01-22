@@ -11,6 +11,7 @@ typedef struct {
     float error;
     float last_error;
     float integral;
+    float iout;
     float output;
 } PID_t;
 

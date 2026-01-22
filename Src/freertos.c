@@ -31,6 +31,7 @@
 #include "chassis_control_task.h"
 #include "com_with_gimbal.h"
 #include "shoot_task.h"
+#include "INS_tasks.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,6 +65,13 @@ const osThreadAttr_t test_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+
+osThreadId_t INS_Handle;
+const osThreadAttr_t INS_task_attributes = {
+  .name = "INS_task",
+  .stack_size = 256 * 12,
+  .priority = (osPriority_t) osPriorityRealtime,
+};
 osThreadId_t Com_Handle;
 const osThreadAttr_t uart_com_attributes = {
   .name = "test",
@@ -74,7 +82,7 @@ const osThreadAttr_t uart_com_attributes = {
 osThreadId_t Chassis_Handle;
 const osThreadAttr_t chassis_task_attributes = {
   .name = "chassis_task",
-  .stack_size = 256 * 12,
+  .stack_size = 256 * 8,
   .priority = (osPriority_t) osPriorityHigh ,
 };
 
@@ -125,6 +133,7 @@ void MX_FREERTOS_Init(void) {
   Chassis_Handle = osThreadNew(chassis_control_task,NULL,&chassis_task_attributes);
   //Shoot_Handle = osThreadNew(shoot_task,NULL,&shoot_task_attributes);
   Com_Handle = osThreadNew(communication_with_gimbal_task,NULL,&uart_com_attributes);
+  INS_Handle = osThreadNew(INS_task,NULL,&INS_task_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

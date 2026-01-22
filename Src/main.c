@@ -38,7 +38,7 @@
 #include "remote_control.h"
 #include "bsp_buzzer.h"
 #include "bsp_can.h"
-
+#include "bsp_delay.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -126,6 +126,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
+  delay_init();
 
   BSP_CAN_Init();
 
