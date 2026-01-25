@@ -4,7 +4,8 @@
 #include "main.h"
 #include "pid.h"
 #include "bsp_can.h"
-
+#define PI 3.14159265358979f
+#define TWO_PI 6.28318530717958f
 struct Can_Motor_t;
 
 // 函数指针定义
@@ -34,7 +35,9 @@ typedef struct {
 
     // 状态量
     int32_t round_count;
+    uint8_t whether_extern_data; //是否使用外部传感器数据来做闭环
     float   total_angle;
+    float   INS_angle;  //留一个传感器的接口
 } GM6020_Data_t;
 
 // 4. 通用对象
@@ -67,4 +70,6 @@ void GM6020_Update(Can_Motor_t *self);
 void DJI_Motor_SendGroup_0x200(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4);
 void DJI_Motor_SendGroup_0x1FF(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4);
 void DJI_Motor_SendGroup_0x2FF(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3);
+
+float Radian_Normalize(float angle);
 #endif

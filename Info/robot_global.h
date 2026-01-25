@@ -9,6 +9,7 @@
 #include "stdint.h"
 #include "remote_control.h"
 
+
 /* --- 模式枚举定义 --- */
 
 typedef enum {
@@ -18,8 +19,9 @@ typedef enum {
 } gimbal_mode_e;
 
 typedef enum {
-    CHASSIS_RELAX = 0,   // 失能状态
-    CHASSIS_FOLLOW,      // 跟随模式（以云台朝向为正前方）
+    CHASSIS_ENABLE = 1,   // 自由模式
+    CHASSIS_UNABLE = 0,      // 跟随模式（以云台朝向为正前方）
+    CHASSIS_FOLLOW= 2, // 跟随模式
 } chassis_mode_e;
 
 typedef enum {
@@ -27,6 +29,11 @@ typedef enum {
     SHOOT_READY,         // 摩擦轮起旋
 } shoot_mode_e;
 
+typedef enum {
+    TUCHUAN_CONTROL = 0,
+    REMOTE_CONTROL,
+
+}control_mode_e;
 /* --- 核心控制结构体 --- */
 
 typedef struct {
@@ -34,6 +41,9 @@ typedef struct {
     gimbal_mode_e  gimbal_mode;
     chassis_mode_e chassis_mode;
     shoot_mode_e   shoot_mode;
+    control_mode_e control_mode;
+    uint8_t shoot_gear;
+    uint8_t fire;
 
     // 2. 云台姿态反馈数据 (由 Sensor Task 更新)
     struct {
@@ -42,13 +52,27 @@ typedef struct {
        float roll;       // 当前横滚角 (度)
         float yaw_v;      // 航向角速度 (度/s)
         float pitch_v;    // 俯仰角速度 (度/s)
-    } gimbal;
+    } gimbal_current;
 
     // 3. 底盘运动状态 (由 Chassis Task 更新)
     struct {
         float yaw_speed;      // 云台相对于底盘的机械夹角 (由编码器转化)
+        float yaw;
+        int16_t vx;
+        int16_t vy;
+    } chassis_current;
 
-    } chassis;
+    struct {
+        float yaw;        //
+        float pitch;      //
+        float yaw_v;      //
+        float pitch_v;    //
+        int16_t vx;
+        int16_t vy;
+        int16_t vz; //底盘转向速度
+
+
+    }target;
 
     // 4. 系统监控与异常处理
     struct {
@@ -57,15 +81,14 @@ typedef struct {
         uint8_t  vision_online;  // 视觉系统在线标志
     } monitor;
 
-    // 5. 输入引用指针
-    const RC_ctrl_t *rc;         // 遥控器原始数据引用
-
 } robot_ctrl_info_t;
 
 /* --- 全局变量声明 --- */
 extern robot_ctrl_info_t robot_ctrl;
 
 /* --- 核心工具函数 --- */
-void Robot_Global_Init(void);
+void Robot_Global_Init(control_mode_e control_mode_p);
+void Robot_Global_Update();
+void Robot_Global_target_Update(void);
 
 #endif

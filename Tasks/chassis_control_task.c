@@ -18,6 +18,9 @@
 #include "LKMF9025.h"
 #include "usart.h"
 #include "can_motor.h"
+#include "com_with_gimbal.h"
+#include "robot_global.h"
+#include <math.h>
 
 extern CAN_HandleTypeDef hcan1;
 
@@ -29,9 +32,8 @@ extern CAN_HandleTypeDef hcan1;
 
 
 dji_motor_object_t shoot_motor;
-PID_t chassis_pid[4];
-PID_t YAW_pid;
 
+PID_t Follow;
 
 
 Can_Motor_t wheel_motor_1;
@@ -54,6 +56,8 @@ M3508_Data_t thumbwheel_priv;
 
 Can_Motor_t yaw_motor;
 GM6020_Data_t yaw_priv;
+
+
 void chassis_control_task() {
 
     char buffer[20];
@@ -80,30 +84,17 @@ void chassis_control_task() {
     PID_Init(&thumbwheel_priv.speed_pid, 7.0f, 0.1f, 0.0f, 500, 16384);
     Can_Motor_Init(&thumbwheel_motor, &hcan1, 0x205, M3508_Decode, M3508_Update, &thumbwheel_priv);  //
 
-    PID_Init(&yaw_priv.speed_pid, 50.0f, 0.0f, 0.0f, 500, 25000);
-    PID_Init(&yaw_priv.pos_pid, 800.0f, 0.0f, 0.0f, 500, 5000);
+    yaw_priv.whether_extern_data = 1;
+
+    PID_Init(&yaw_priv.speed_pid, 40.0f, 0.0f, 5.0f, 500, 25000);
+    PID_Init(&yaw_priv.pos_pid, 700.0f, 0.0f, 100.0f, 500, 5000);
     Can_Motor_Init(&yaw_motor, &hcan1, 0x206, GM6020_Decode, GM6020_Update, &yaw_priv);
 
-    //const char test1[20] = "init succefully";
-    //HAL_UART_Transmit(&huart6, test1, 20,100);
+
+    PID_Init(&Follow, 2000.0f, 0.0f, 10.0f, 500, 5000);
 
 
-    // DJI_Motor_Init(&chassis_m1,&hcan1,0x201);
-    // DJI_Motor_Init(&chassis_m2,&hcan1,0x202);
-    // DJI_Motor_Init(&chassis_m3,&hcan1,0x203);
-    // DJI_Motor_Init(&chassis_m4,&hcan1,0x204);
-    // DJI_Motor_Init(&shoot_motor,&hcan1,0x205);
-    // PID_Init(&shoot_pid,7,0.1,0.1,1000,8000);
-   // GM6020_PV_init(&YAW_Motor6020, 0x206, &hcan1, 6,
-       //             800.0,     /* P_Kp */
-      //              0.0,      /* P_Ki */
-       //             50.0,    /* V_Kp */
-       //             0.0,      /* V_Ki */
-       //             0.0,      /* V_Kd */
-       //             25000.0 );  /* Out_Max */
 
-
-    //LK_Motor_Init(&YAW_Motor,&hcan1,1);
 
     float velocity_forword = 0;
     float velocity_turn = 0;
@@ -112,111 +103,92 @@ void chassis_control_task() {
     float angle = 0;
 
 
-    int16_t I1 = 0;
-    int16_t I2 = 0;
-    int16_t I3 = 0;
-    int16_t I4 = 0;
+
 
 
 
     osDelay(100);
 
     while (1) {
+        robot_ctrl.chassis_mode = received_chassis.enable;
 
-        if (switch_is_mid(local_rc_ctrl->rc.s[1])) {
-            velocity_turn = local_rc_ctrl->rc.ch[1] * 12;
-            velocity_14 = local_rc_ctrl->rc.ch[2] * 10 + local_rc_ctrl->rc.ch[3] * 10;
-            velocity_23 = -local_rc_ctrl->rc.ch[2] * 10 + local_rc_ctrl->rc.ch[3] * 10;
 
-            //  = (int16_t)PID_Calculate(&chassis_pid[0],velocity_14 + velocity_turn,chassis_m1.measure.speed_rpm);
-            // chassis_m2.input_current = (int16_t)PID_Calculate(&chassis_pid[1],-(velocity_23 - velocity_turn),chassis_m2.measure.speed_rpm);
-            // chassis_m3.input_current = (int16_t)PID_Calculate(&chassis_pid[2],velocity_23 + velocity_turn,chassis_m3.measure.speed_rpm);
-            // chassis_m4.input_current = (int16_t)PID_Calculate(&chassis_pid[3],-(velocity_14 - velocity_turn),chassis_m4.measure.speed_rpm);
-            //
-            //
+        yaw_priv.INS_angle = received_chassis.yaw_INS;
+
+        float theta = yaw_priv.total_angle + 1.5707963f; // 1.5707963f = PI / 2
+        theta = Radian_Normalize(theta);
+
+        if (robot_ctrl.chassis_mode == CHASSIS_FOLLOW) {
+            velocity_turn = PID_Calculate(&Follow, 0, theta);
+
+        }
+        else if (robot_ctrl.chassis_mode == CHASSIS_ENABLE){
+            velocity_turn = received_chassis.vz  * 10 ;
+
+        }
+        else {
+            velocity_turn = 0;
+        }
+
+        // 2. 坐标系旋转矩阵变换
+        // 将操作手的 vx(左右), vy(前后) 映射到底盘坐标系的 target_vx, target_vy
+
+
+
+        // 旋转矩阵：
+        // target_vx = vx * cos(theta) - vy * sin(theta)
+        // target_vy = vx * sin(theta) + vy * cos(theta)
+        float target_vx = received_chassis.vy * cosf(theta) - received_chassis.vx * sinf(theta);
+        float target_vy = received_chassis.vy * sinf(theta) + received_chassis.vx * cosf(theta);
+
+        velocity_14 = target_vy * 10.0f + target_vx * 10.0f;
+        velocity_23 = target_vy * 10.0f - target_vx * 10.0f;
+
             wheel_priv_1.target_speed = velocity_14 + velocity_turn;
-            wheel_priv_2.target_speed = -(velocity_23 - velocity_turn);
+            wheel_priv_2.target_speed = -(velocity_23 - velocity_turn);  //因为安装位置的问题
             wheel_priv_3.target_speed = velocity_23 + velocity_turn;
             wheel_priv_4.target_speed = -(velocity_14 - velocity_turn);
 
-            wheel_motor_1.update_func(&wheel_motor_1);
 
-            wheel_motor_2.update_func(&wheel_motor_2);
-            wheel_motor_3.update_func(&wheel_motor_3);
-            wheel_motor_4.update_func(&wheel_motor_4);
-            //GM6020_Update(&yaw_motor);
-            yaw_motor.update_func(&yaw_motor);
-            DJI_Motor_SendGroup_0x200(&hcan1,wheel_motor_1.output_value,wheel_motor_2.output_value,wheel_motor_3.output_value,
-            wheel_motor_4.output_value);
-
-            angle += local_rc_ctrl->rc.ch[0] / 6600.0f /5.0f;
-            yaw_priv.target_angle = angle;
-
-            //HAL_GPIO_TogglePin(LED_B_GPIO_Port,LED_B_Pin);
-
-           // HAL_UART_Transmit(&huart6,"yes\r\n",5,100);
+            yaw_priv.target_angle = received_chassis.yaw;
 
 
-           // osDelay(2);
-           //DJI_Motor_SendGroup_0x1FF(&hcan1,shoot_motor.input_current,YAW_Motor6020.input_current,0,0);
-            osDelay(2);
 
 
+
+            if (received_chassis.fire == 1) {
+                thumbwheel_priv.target_speed = 3000;
+            }
+
+
+        if (robot_ctrl.chassis_mode == CHASSIS_UNABLE) {
+            wheel_motor_1.output_value = 0;
+            wheel_motor_2.output_value = 0;
+            wheel_motor_4.output_value = 0;
+            wheel_motor_3.output_value = 0;
+            yaw_motor.output_value = 0;
+            thumbwheel_motor.output_value = 0;
+            //yaw_priv.target_angle = yaw_priv.total_angle;
+            gimbal_info.yaw_encoder = yaw_priv.total_angle;
         }
-        else if (switch_is_down(local_rc_ctrl->rc.s[1])) {
-
-            velocity_14 = local_rc_ctrl->rc.ch[2] * 10 + local_rc_ctrl->rc.ch[3] * 10;
-            velocity_23 = -local_rc_ctrl->rc.ch[2] * 10 + local_rc_ctrl->rc.ch[3] * 10;
-
-            // chassis_m1.input_current = (int16_t)PID_Calculate(&chassis_pid[0],velocity_14,chassis_m1.measure.speed_rpm);
-            // chassis_m2.input_current = (int16_t)PID_Calculate(&chassis_pid[1],-(velocity_23),chassis_m2.measure.speed_rpm);
-            // chassis_m3.input_current = (int16_t)PID_Calculate(&chassis_pid[2],velocity_23,chassis_m3.measure.speed_rpm);
-            // chassis_m4.input_current = (int16_t)PID_Calculate(&chassis_pid[3],-(velocity_14),chassis_m4.measure.speed_rpm);
-
-            wheel_priv_1.target_speed = velocity_14;
-            wheel_priv_2.target_speed = -(velocity_23);
-            wheel_priv_3.target_speed = velocity_23;
-            wheel_priv_4.target_speed = -(velocity_14);
-
-            angle += local_rc_ctrl->rc.ch[0] / 6600.0f /5.0f;
-            yaw_priv.target_angle = angle;
-           // GM6020_PV_set_target(&YAW_Motor6020,angle);
-            //GM6020_PV_update(&YAW_Motor6020);
-
-            //LK_Motor_SpeedControl(&YAW_Motor,local_rc_ctrl->rc.ch[1] * 20);
-            // 替代原来的两行代码
-            // LK_Motor_SpeedControl(&YAW_Motor, local_rc_ctrl->rc.ch[0] * 20); // 根据需要调整倍数
-
+        else {
             wheel_motor_1.update_func(&wheel_motor_1);
-
             wheel_motor_2.update_func(&wheel_motor_2);
             wheel_motor_3.update_func(&wheel_motor_3);
             wheel_motor_4.update_func(&wheel_motor_4);
             yaw_motor.update_func(&yaw_motor);
-            DJI_Motor_SendGroup_0x200(&hcan1,wheel_motor_1.output_value,wheel_motor_2.output_value,wheel_motor_3.output_value,
-            wheel_motor_4.output_value);
-
-            osDelay(2);
+            thumbwheel_motor.update_func(&thumbwheel_motor);
 
         }
-        thumbwheel_priv.target_speed = local_rc_ctrl->rc.ch[4] * 10;
 
 
-       // shoot_motor.input_current  = (int16_t)PID_Calculate(&shoot_pid,shoot_motor.target_velocity,shoot_motor.measure.speed_rpm);
-
-        thumbwheel_motor.update_func(&thumbwheel_motor);
-        DJI_Motor_SendGroup_0x1FF(&hcan1,thumbwheel_motor.output_value,yaw_motor.output_value,0,0);
-        osDelay(2);
-
-
-
-       // osDelay(2);
+            DJI_Motor_SendGroup_0x200(&hcan1,wheel_motor_1.output_value,wheel_motor_2.output_value,wheel_motor_3.output_value,
+            wheel_motor_4.output_value);
+            DJI_Motor_SendGroup_0x1FF(&hcan1,thumbwheel_motor.output_value,yaw_motor.output_value,0,0);
+            osDelay(2);
+            //  sprintf(buffer,"yaw:%f",yaw_priv.total_angle);
+            // HAL_UART_Transmit(&huart6, buffer, 20,10);
 
     }
-
-}
-
-void M3508_test_task() {
-
 
 }

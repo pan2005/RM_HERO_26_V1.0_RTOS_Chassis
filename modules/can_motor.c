@@ -1,6 +1,14 @@
 #include "can_motor.h"
+#include "robot_global.h"
+#include "math.h"
 #include <string.h>
 
+float Radian_Normalize(float angle) {
+    float res = fmodf(angle, TWO_PI);
+    if (res > PI) res -= TWO_PI;
+    if (res < -PI) res += TWO_PI;
+    return res;
+}
 void Can_Motor_Init(Can_Motor_t *motor, CAN_HandleTypeDef *hcan, uint32_t rx_id,
                     Motor_Decode_Func decode, Motor_Update_Func update, void *priv) {
     if (!motor || !priv) return;
@@ -48,8 +56,30 @@ void GM6020_Decode(void * device, uint8_t *data) {
 
 void GM6020_Update(Can_Motor_t *self) {
     GM6020_Data_t *d = (GM6020_Data_t *)self->priv_data;
-    float v_target = PID_Calculate(&d->pos_pid, d->target_angle, d->total_angle);
-    self->output_value = (int16_t)PID_Calculate(&d->speed_pid, v_target, (float)self->measure.speed_rpm);
+
+    if (d->whether_extern_data == 1) {
+
+        float error = d->target_angle - d->INS_angle;
+        float short_error = Radian_Normalize(error);
+
+        // 2. 构造虚拟目标值，骗过 PID 函数
+        float virtual_target = d->INS_angle + short_error;
+        float v_target = PID_Calculate(&d->pos_pid, virtual_target, d->INS_angle);
+        self->output_value = (int16_t)PID_Calculate(&d->speed_pid, v_target, (float)self->measure.speed_rpm);
+
+    }
+    else {
+        float v_target = PID_Calculate(&d->pos_pid, d->target_angle, d->total_angle);
+        self->output_value = (int16_t)PID_Calculate(&d->speed_pid, v_target, (float)self->measure.speed_rpm);
+
+    }
+
+    // float error = d->target_angle - d->total_angle;
+    // float short_error = Radian_Normalize(error);
+    //
+    // // 2. 构造虚拟目标值，骗过 PID 函数
+    // float virtual_target = d->total_angle + short_error;
+
 }
 
 void DJI_Motor_SendGroup_0x200(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4)
