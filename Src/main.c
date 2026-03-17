@@ -122,18 +122,20 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
+  MX_TIM6_Init();
   MX_TIM10_Init();
   MX_USART1_UART_Init();
   MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
   delay_init();
+  usart6_init();
 
   BSP_CAN_Init();
 
 
-  remote_control_init();
+ // remote_control_init();
   HAL_Delay(100);
-  local_rc_ctrl = get_remote_control_point();
+ // local_rc_ctrl = get_remote_control_point();
  // buzzer_init();
   /* USER CODE END 2 */
 
@@ -214,19 +216,19 @@ void SystemClock_Config(void)
   * @param  htim : TIM handle
   * @retval None
   */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
-
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM2)
-  {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
-
-  /* USER CODE END Callback 1 */
-}
+// void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+// {
+//   /* USER CODE BEGIN Callback 0 */
+//
+//   /* USER CODE END Callback 0 */
+//   if (htim->Instance == TIM2)
+//   {
+//     HAL_IncTick();
+//   }
+//   /* USER CODE BEGIN Callback 1 */
+//
+//   /* USER CODE END Callback 1 */
+// }
 
 /**
   * @brief  This function is executed in case of error occurrence.

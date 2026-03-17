@@ -28,8 +28,11 @@
 //#include "bsp_usart.h"
 #include "CAN_receive.h"
 #include "remote_control.h"
+#include "bsp_usart.h"
+#include "referee_protocol.h"
 #include "chassis_control_task.h"
 #include "com_with_gimbal.h"
+#include "ui_task.h"
 #include "shoot_task.h"
 #include "INS_tasks.h"
 /* USER CODE END Includes */
@@ -75,14 +78,14 @@ const osThreadAttr_t INS_task_attributes = {
 osThreadId_t Com_Handle;
 const osThreadAttr_t uart_com_attributes = {
   .name = "test",
-  .stack_size = 256 * 10,
-  .priority = (osPriority_t) osPriorityHigh - 1,
+  .stack_size = 256 * 5,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 
 osThreadId_t Chassis_Handle;
 const osThreadAttr_t chassis_task_attributes = {
   .name = "chassis_task",
-  .stack_size = 256 * 8,
+  .stack_size = 256 * 5,
   .priority = (osPriority_t) osPriorityHigh ,
 };
 
@@ -91,6 +94,13 @@ const osThreadAttr_t shoot_task_attributes = {
   .name = "chassis_task",
   .stack_size = 256 * 2,
   .priority = (osPriority_t) osPriorityHigh ,
+};
+
+osThreadId_t UI_Handle;
+const osThreadAttr_t ui_task_attributes = {
+  .name = "ui_task",
+  .stack_size = 256 * 15,
+  .priority = (osPriority_t) osPriorityNormal ,
 };
 
 
@@ -108,7 +118,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
+  usart6_register_callback(Referee_Data_Solve);
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -133,6 +143,7 @@ void MX_FREERTOS_Init(void) {
   Chassis_Handle = osThreadNew(chassis_control_task,NULL,&chassis_task_attributes);
   //Shoot_Handle = osThreadNew(shoot_task,NULL,&shoot_task_attributes);
   Com_Handle = osThreadNew(communication_with_gimbal_task,NULL,&uart_com_attributes);
+  UI_Handle = osThreadNew(UI_Task,NULL,&ui_task_attributes);
   //INS_Handle = osThreadNew(INS_task,NULL,&INS_task_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */

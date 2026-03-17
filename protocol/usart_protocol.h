@@ -26,7 +26,7 @@ typedef struct {
     int16_t vy;    // 横移速度
     int16_t vz;    // 旋转速度 (自旋)
     uint8_t fire;  // 开火标志 (0:不发射, 1:单发, 2:连发等)
-    uint8_t enable;   // 是否使能，若为0则电机不出力
+    uint8_t mode;   // 是否使能，若为0则电机不出力
     float yaw;     // 底盘相对于云台或大地的偏航角
     float yaw_INS;  //绝对坐标系的偏航角
     float yaw_v_INS;

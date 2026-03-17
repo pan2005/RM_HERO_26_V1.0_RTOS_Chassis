@@ -27,6 +27,17 @@ typedef struct {
     float target_speed;
 } M3508_Data_t;
 
+// 2.1 M3508 带位置环的数据结构 (用于拨弹盘等需要位置控制的场景)
+typedef struct {
+    PID_t pos_pid;
+    PID_t speed_pid;
+    float target_angle;       // 目标角度 (弧度)
+    float current_angle;      // 当前角度 (弧度)
+    int32_t round_count;      // 圈数计数
+    float   total_angle;      // 总角度 (弧度)
+    float   gear_ratio;       // 减速比
+} M3508_Pos_Data_t;
+
 // 3. GM6020 特有数据结构 (暴露给应用层)
 typedef struct {
     PID_t pos_pid;
@@ -35,9 +46,9 @@ typedef struct {
 
     // 状态量
     int32_t round_count;
-    uint8_t whether_extern_data; //是否使用外部传感器数据来做闭环
+   // uint8_t whether_extern_data; //是否使用外部传感器数据来做闭环
     float   total_angle;
-    float   INS_angle;  //留一个传感器的接口
+  //  float   INS_angle;  //留一个传感器的接口
 } GM6020_Data_t;
 
 // 4. 通用对象
@@ -61,6 +72,9 @@ void Can_Motor_Init(Can_Motor_t *motor, CAN_HandleTypeDef *hcan, uint32_t rx_id,
 void M3508_Decode(void * device, uint8_t *data);
 void M3508_Update(Can_Motor_t *self);
 
+void M3508_Pos_Decode(void *device, uint8_t *data);
+void M3508_Pos_Update(Can_Motor_t *self);
+
 void GM6020_Decode(void *device, uint8_t *data);
 void GM6020_Update(Can_Motor_t *self);
 
@@ -69,7 +83,7 @@ void GM6020_Update(Can_Motor_t *self);
 
 void DJI_Motor_SendGroup_0x200(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4);
 void DJI_Motor_SendGroup_0x1FF(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4);
-void DJI_Motor_SendGroup_0x2FF(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3);
+void DJI_Motor_SendGroup_0x1FE(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3);
 
 float Radian_Normalize(float angle);
 #endif

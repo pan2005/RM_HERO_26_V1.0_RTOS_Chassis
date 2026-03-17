@@ -141,7 +141,7 @@ void INS_task(void const *pvParameters)
     BMI088_read(bmi088_real_data.gyro, bmi088_real_data.accel, &bmi088_real_data.temp);
 
   //  PID_init(&imu_temp_pid, PID_POSITION, imu_temp_PID, TEMPERATURE_PID_MAX_OUT, TEMPERATURE_PID_MAX_IOUT);
-    PID_Init(&imu_pid, TEMPERATURE_PID_KP,TEMPERATURE_PID_KI,TEMPERATURE_PID_KD, TEMPERATURE_PID_MAX_OUT, TEMPERATURE_PID_MAX_IOUT);
+    PID_Init(&imu_pid, TEMPERATURE_PID_KP,TEMPERATURE_PID_KI,TEMPERATURE_PID_KD, TEMPERATURE_PID_MAX_OUT, TEMPERATURE_PID_MAX_IOUT,0);
 
     AHRS_init(INS_quat, bmi088_real_data.accel, ist8310_real_data.mag);
 

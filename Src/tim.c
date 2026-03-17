@@ -21,6 +21,7 @@
 #include "tim.h"
 
 /* USER CODE BEGIN 0 */
+TIM_HandleTypeDef htim6;
 
 /* USER CODE END 0 */
 
@@ -28,6 +29,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
+
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim10;
 
@@ -687,5 +689,29 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 }
 
 /* USER CODE BEGIN 1 */
+void MX_TIM6_Init(void)
+{
+  // 1. 使能 TIM6 时钟 (TIM6 挂在 APB1 上)
+  __HAL_RCC_TIM6_CLK_ENABLE();
 
+  // 2. 配置定时器参数
+  // 假设 HCLK = 168MHz，则 APB1 Timer Clock = 84MHz
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 83;       // 84,000,000 / 84 = 1,000,000 Hz (1us计数一次)
+  htim6.Init.Period = 999;        // 1,000,000 / 1000 = 1000 Hz (1ms溢出一次)
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  // 3. 配置 NVIC 中断优先级
+  // 抢占优先级设为 5（必须 >= configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY）
+  HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+
+  // 4. 启动定时器中断
+  //HAL_TIM_Base_Start_IT(&htim6);
+}
 /* USER CODE END 1 */

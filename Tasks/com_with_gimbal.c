@@ -23,7 +23,7 @@ GimbalInfo_t gimbal_info;
 static void On_Usart1_Data_Received(uint8_t *data, uint16_t len) {
     //HAL_UART_Transmit(&huart1, data, len, 10);
     if (Protocol_Parse(data, len,&cmd_id, &received_chassis)) {
-        //HAL_GPIO_TogglePin(LED_B_GPIO_Port,LED_B_Pin);
+       HAL_GPIO_TogglePin(LED_R_GPIO_Port,LED_R_Pin);
     }
 }
 
@@ -44,9 +44,15 @@ void communication_with_gimbal_task(void * argument) {
         Protocol_Pack_GimbalInfo(&gimbal_info,tx_buf, &tx_len);
         usart_tx_binary(&huart1, tx_buf, tx_len);
 
+        if (received_chassis.mode == 1) {
+           // HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,0);
+        }
 
-        // sprintf(buffer,"YAW:%.3f,%.3f\r\n",received_chassis.yaw_INS,received_chassis.yaw_v_INS);
-        // HAL_UART_Transmit(&huart6, buffer, 20,10);
+
+       // sprintf(buffer,"YAW:%d,%.3f\r\n",received_chassis.enable,received_chassis.yaw_v_INS);
+       // HAL_UART_Transmit(&huart6, buffer, 20,10);
+
+
 
 
 

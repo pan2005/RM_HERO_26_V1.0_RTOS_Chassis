@@ -13,15 +13,15 @@
 /* --- 模式枚举定义 --- */
 
 typedef enum {
-    GIMBAL_RELAX = 0,    // 失能状态，电机不出力
-    GIMBAL_REMOTE,       // 遥控器手动模式（基于IMU控制）
+
+    GIMBAL_REMOTE = 0,       // 遥控器手动模式（基于IMU控制）
     GIMBAL_AUTO,         // 视觉自瞄模式
 } gimbal_mode_e;
 
 typedef enum {
-    CHASSIS_ENABLE = 1,   // 自由模式
-    CHASSIS_UNABLE = 0,      // 跟随模式（以云台朝向为正前方）
-    CHASSIS_FOLLOW= 2, // 跟随模式
+    CHASSIS_UNABLE = 0,   // 失能状态
+    CHASSIS_FOLLOW,      // 跟随模式,
+    CHASSIS_SPIN,
 } chassis_mode_e;
 
 typedef enum {
@@ -31,6 +31,7 @@ typedef enum {
 
 typedef enum {
     TUCHUAN_CONTROL = 0,
+
     REMOTE_CONTROL,
 
 }control_mode_e;
@@ -44,6 +45,8 @@ typedef struct {
     control_mode_e control_mode;
     uint8_t shoot_gear;
     uint8_t fire;
+    uint8_t imu_calibrated_flag;
+    uint8_t pitch_motor_enabled;
 
     // 2. 云台姿态反馈数据 (由 Sensor Task 更新)
     struct {
@@ -57,9 +60,9 @@ typedef struct {
     // 3. 底盘运动状态 (由 Chassis Task 更新)
     struct {
         float yaw_speed;      // 云台相对于底盘的机械夹角 (由编码器转化)
-        float yaw;
         int16_t vx;
         int16_t vy;
+        int16_t d_vz;
     } chassis_current;
 
     struct {
@@ -70,7 +73,6 @@ typedef struct {
         int16_t vx;
         int16_t vy;
         int16_t vz; //底盘转向速度
-
 
     }target;
 
@@ -85,6 +87,7 @@ typedef struct {
 
 /* --- 全局变量声明 --- */
 extern robot_ctrl_info_t robot_ctrl;
+extern uint8_t pitch_enable_flag;
 
 /* --- 核心工具函数 --- */
 void Robot_Global_Init(control_mode_e control_mode_p);

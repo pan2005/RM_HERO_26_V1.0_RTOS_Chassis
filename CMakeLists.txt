@@ -87,7 +87,16 @@ add_executable(${CMAKE_PROJECT_NAME}
         boards/bsp_imu_pwm.c
         boards/bsp_imu_pwm.h
         algorithm/MahonyAHRS.c
-        algorithm/MahonyAHRS.h)
+        algorithm/MahonyAHRS.h
+        algorithm/irr_fliter.c
+        algorithm/irr_fliter.h
+        protocol/ui_interface.c
+        protocol/ui_g.c
+        Tasks/ui_task.c
+        Tasks/ui_task.h
+        protocol/referee_protocol.c
+        protocol/referee_protocol.h
+)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

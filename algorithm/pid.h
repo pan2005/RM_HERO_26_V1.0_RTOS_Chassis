@@ -2,7 +2,7 @@
 #define PID_H
 
 typedef struct {
-    float Kp, Ki, Kd;
+    float Kp, Ki, Kd,Kf;
     float integral_limit;
     float output_limit;
 
@@ -15,7 +15,7 @@ typedef struct {
     float output;
 } PID_t;
 
-void PID_Init(PID_t *pid, float Kp, float Ki, float Kd, float i_limit, float out_limit);
+void PID_Init(PID_t *pid, float Kp, float Ki, float Kd,float Kf, float i_limit, float out_limit);
 float PID_Calculate(PID_t *pid, float target, float measure);
 
 #endif
