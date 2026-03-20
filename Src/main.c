@@ -39,6 +39,7 @@
 #include "bsp_buzzer.h"
 #include "bsp_can.h"
 #include "bsp_delay.h"
+#include "Supercapacitor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,7 +66,8 @@ extern const RC_ctrl_t* local_rc_ctrl;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
-/* USER CODE BEGIN PFP */
+/* USER CODE BEGIN PFP
+ * */
 
 /* USER CODE END PFP */
 
@@ -129,8 +131,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
   delay_init();
   usart6_init();
-
   BSP_CAN_Init();
+
+  Super_cap_init(&super_cap_return_pack);
 
 
  // remote_control_init();

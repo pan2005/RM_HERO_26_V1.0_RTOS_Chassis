@@ -43,11 +43,15 @@ typedef struct {
     PID_t pos_pid;
     PID_t speed_pid;
     float target_angle;
+    float target_v;
 
     // 状态量
     int32_t round_count;
    // uint8_t whether_extern_data; //是否使用外部传感器数据来做闭环
     float   total_angle;
+    // ======== 新增前馈专用变量 ========
+    float feedforward_current;
+
   //  float   INS_angle;  //留一个传感器的接口
 } GM6020_Data_t;
 
@@ -57,10 +61,8 @@ typedef struct Can_Motor_t {
     uint32_t rx_id;
     int16_t  output_value;
     Motor_Measure_t measure;
-
     Motor_Decode_Func decode_func;
     Motor_Update_Func update_func;
-
     void *priv_data; // 指向 M3508_Data_t 或 GM6020_Data_t
 } Can_Motor_t;
 

@@ -30,6 +30,8 @@ typedef struct {
     float yaw;     // 底盘相对于云台或大地的偏航角
     float yaw_INS;  //绝对坐标系的偏航角
     float yaw_v_INS;
+    uint8_t shoot_gear; // 摩擦轮挡位: 0=关闭, 1=低档, 2=高档
+    float mouse_x_v;   // mouse.x变化率(前馈控制用)
     // float yaw_measure;   //用于位置的闭环计算
 } ChassisInfo_t;
 

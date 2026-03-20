@@ -7,8 +7,7 @@
 #define UI_INTERFACE_H
 
 #include "ui_types.h"
-
-extern int ui_self_id;
+#include "referee_protocol.h"
 
 void print_message(const uint8_t* message, int length);
 

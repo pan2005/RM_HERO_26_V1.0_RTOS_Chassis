@@ -86,39 +86,18 @@ void GM6020_Decode(void * device, uint8_t *data) {
     self->measure.speed_rpm = (int16_t)(data[2] << 8 | data[3]);
 
     GM6020_Data_t *d = (GM6020_Data_t *)self->priv_data;
-    // 过零检测
-    // int16_t diff = self->measure.ecd - self->measure.last_ecd;
-    // if (diff < -4096)      d->round_count++;
-    // else if (diff > 4096)  d->round_count--;
-    //
-    // d->total_angle = (d->round_count * 8192 + self->measure.ecd) * (2.0f * 3.1415926f / 8192.0f);
+
     float raw_rad = (self->measure.ecd / 8192.0f) * TWO_PI;
     d->total_angle = Radian_Normalize(raw_rad);
 }
 
 void GM6020_Update(Can_Motor_t *self) {
-    //GM6020_Data_t *d = (GM6020_Data_t *)self->priv_data;
 
-    // if (d->whether_extern_data == 1) {
-    //
-    //     float error = d->target_angle - d->INS_angle;
-    //     float short_error = Radian_Normalize(error);
-    //
-    //     // 2. 构造虚拟目标值，骗过 PID 函数
-    //     float virtual_target = d->INS_angle + short_error;
-    //     float v_target = PID_Calculate(&d->pos_pid, virtual_target, d->INS_angle);
-    //     self->output_value = (int16_t)PID_Calculate(&d->speed_pid, v_target, (float)self->measure.speed_rpm);
-    //
-    // }
-    // else {
-    //     float v_target = PID_Calculate(&d->pos_pid, d->target_angle, d->total_angle);
-    //     self->output_value = (int16_t)PID_Calculate(&d->speed_pid, v_target, (float)self->measure.speed_rpm);
-    //
-    // }
 
 
     if (!self || !self->priv_data) return;
     GM6020_Data_t *d = (GM6020_Data_t *)self->priv_data;
+    float friction_comp = 0.0f;
 
     // --- 驱动层只处理编码器闭环 ---
     float current_ecd_angle = d->total_angle; // 当前编码器归一化角度
@@ -132,9 +111,25 @@ void GM6020_Update(Can_Motor_t *self) {
     float virtual_target = current_ecd_angle + ecd_error;
 
     // 3. 级联 PID 计算
-    float v_target = PID_Calculate(&d->pos_pid, virtual_target, current_ecd_angle);
-    self->output_value = (int16_t)PID_Calculate(&d->speed_pid, v_target, (float)self->measure.speed_rpm);
+    d->target_v = PID_Calculate(&d->pos_pid, virtual_target, current_ecd_angle);
 
+    float pid_current = PID_Calculate(&d->speed_pid, d->target_v, (float)self->measure.speed_rpm);
+
+
+    if (d->target_v > 2.0f) {
+        friction_comp = 3000;
+    }else if (d->target_v < -2.0f){
+        friction_comp = -3000;
+    }
+    float total_current = pid_current + d->feedforward_current + friction_comp;
+    // 绝对安全的软件限幅 (GM6020 电流范围 -30000 ~ 30000，取 24990 留余量)
+    if (total_current > 24990.0f) {
+        total_current = 24990.0f;
+    } else if (total_current < -24990.0f) {
+        total_current = -24990.0f;
+    }
+    // 最终输出到电机对象
+    self->output_value = (int16_t)total_current;
 }
 
 void DJI_Motor_SendGroup_0x200(CAN_HandleTypeDef *hcan, int16_t c1, int16_t c2, int16_t c3, int16_t c4)

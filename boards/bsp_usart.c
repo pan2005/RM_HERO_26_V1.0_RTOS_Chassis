@@ -147,11 +147,29 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART1)
     {
+        __HAL_UART_CLEAR_OREFLAG(huart);
+        __HAL_UART_CLEAR_NEFLAG(huart);
+        __HAL_UART_CLEAR_FEFLAG(huart);
+        __HAL_UART_CLEAR_PEFLAG(huart);
+
+        // 2. 强行恢复状态机
+        huart->ErrorCode = HAL_UART_ERROR_NONE;
+        huart->RxState = HAL_UART_STATE_READY;
+
         usart1_rx_buf_idx = 0;
         HAL_UARTEx_ReceiveToIdle_DMA(&huart1, usart1_rx_buffers[0], USART1_RX_BUF_SIZE);
     }
     else if (huart->Instance == USART6)
     {
+        __HAL_UART_CLEAR_OREFLAG(huart);
+        __HAL_UART_CLEAR_NEFLAG(huart);
+        __HAL_UART_CLEAR_FEFLAG(huart);
+        __HAL_UART_CLEAR_PEFLAG(huart);
+
+        // 2. 强行恢复状态机
+        huart->ErrorCode = HAL_UART_ERROR_NONE;
+        huart->RxState = HAL_UART_STATE_READY;
+
         usart6_rx_buf_idx = 0;
         HAL_UARTEx_ReceiveToIdle_DMA(&huart6, usart6_rx_buffers[0], USART6_RX_BUF_SIZE);
     }

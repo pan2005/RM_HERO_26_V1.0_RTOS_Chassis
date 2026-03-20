@@ -35,6 +35,27 @@ typedef enum {
     REMOTE_CONTROL,
 
 }control_mode_e;
+
+/* --- 裁判系统数据结构 --- */
+typedef struct {
+    uint8_t robot_id;
+    uint8_t robot_level;
+    uint16_t current_HP;
+    uint16_t maximum_HP;
+    uint16_t shooter_barrel_cooling_value;
+    uint16_t shooter_barrel_heat_limit;
+    uint16_t chassis_power_limit;
+    uint8_t power_management_gimbal_output : 1;
+    uint8_t power_management_chassis_output : 1;
+    uint8_t power_management_shooter_output : 1;
+} referee_robot_status_t;
+
+typedef struct {
+    uint16_t buffer_energy;
+    uint16_t shooter_17mm_barrel_heat;
+    uint16_t shooter_42mm_barrel_heat;
+} referee_power_heat_t;
+
 /* --- 核心控制结构体 --- */
 
 typedef struct {
@@ -82,6 +103,12 @@ typedef struct {
         uint8_t  remote_online;  // 遥控器在线标志
         uint8_t  vision_online;  // 视觉系统在线标志
     } monitor;
+
+    // 5. 裁判系统数据
+    struct {
+        referee_robot_status_t robot_status;
+        referee_power_heat_t power_heat;
+    } referee;
 
 } robot_ctrl_info_t;
 

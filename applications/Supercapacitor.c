@@ -24,11 +24,19 @@ Super_Cap_Control_Pack Sup_Cap_Control_Pack = {
 
 Super_Cap_Return_Pack super_cap_return_pack;
 
-// 初始化一个控制包实例
-void Sup_cap_init(void) {
-    //BSP_CAN_RegisterRxCallback(hcan1, 0x301, CAN_ID_STD, , &Sup_Cap_Control_Pack)
+static void Super_cap_rx_callback(void *device, uint8_t *data);
 
+void Super_cap_init(Super_Cap_Return_Pack * device) {
+    BSP_CAN_RegisterRxCallback(&hcan1, Super_Cap_Return_ID, CAN_ID_STD, Super_cap_rx_callback, device);
+}
 
+static void Super_cap_rx_callback(void *device, uint8_t *data) {
+    Super_Cap_Return_Pack *sup_ptr = (Super_Cap_Return_Pack *)device;
+    sup_ptr->Capacity_Voltage = (int16_t)((data[1] << 8) | data[0]);
+    sup_ptr->Chassis_output = (int16_t)((data[3] << 8) | data[2]);
+    sup_ptr->Cap_Power = (int16_t)((data[5] << 8) | data[4]);
+    sup_ptr->Temperature = data[6];
+    sup_ptr->Status.value = data[7];
 }
 void Sup_cap_send_cmd(Super_Cap_Control_Pack *  Sup_Cap_Control_Packet) {
     uint8_t Sup_cap_senddata[8] = {0};

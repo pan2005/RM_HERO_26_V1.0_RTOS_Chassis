@@ -6,7 +6,6 @@
 #include "string.h"
 #include "ui_interface.h"
 #include "ui_g.h"
-#include "stdlib.h"
 
 #define TOTAL_FIGURE 4
 #define TOTAL_STRING 4
@@ -17,14 +16,14 @@ ui_interface_string_t ui_g_now_strings[TOTAL_STRING];
 uint8_t ui_g_dirty_string[TOTAL_STRING];
 
 uint8_t ui_g_max_send_count[TOTAL_FIGURE + TOTAL_STRING] = {
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
 };
 
 #ifndef MANUAL_DIRTY
@@ -84,7 +83,7 @@ void ui_init_g() {
     ui_g_Ungroup_AUTO->width = 2;
     ui_g_Ungroup_AUTO->font_size = 20;
     ui_g_Ungroup_AUTO->str_length = 4;
-    strcpy(ui_g_Ungroup_AUTO->string, "AUT");
+    strcpy(ui_g_Ungroup_AUTO->string, "AUTO");
 
     ui_g_Ungroup_fire->figure_type = 7;
     ui_g_Ungroup_fire->operate_type = 1;
@@ -95,7 +94,7 @@ void ui_init_g() {
     ui_g_Ungroup_fire->width = 2;
     ui_g_Ungroup_fire->font_size = 20;
     ui_g_Ungroup_fire->str_length = 4;
-    strcpy(ui_g_Ungroup_fire->string, "FIR");
+    strcpy(ui_g_Ungroup_fire->string, "Fire");
 
     ui_g_Ungroup_CAP->figure_type = 7;
     ui_g_Ungroup_CAP->operate_type = 1;
@@ -117,7 +116,7 @@ void ui_init_g() {
     ui_g_Ungroup_TH_current->width = 2;
     ui_g_Ungroup_TH_current->font_size = 20;
     ui_g_Ungroup_TH_current->str_length = 10;
-    strcpy(ui_g_Ungroup_TH_current->string, "TH_CURRENT");
+    strcpy(ui_g_Ungroup_TH_current->string, "th_current");
 
     uint32_t idx = 0;
     for (int i = 0; i < TOTAL_FIGURE; i++) {

@@ -52,14 +52,13 @@ typedef union
 
 typedef struct
 {
-    int16_t Cell_Power;   // 电管输出功率 * 10
-    int16_t Cap_Power;  // 电容充电功率（正为充电，负为放电）* 10
-
-
-
     int16_t Capacity_Voltage;  //当前电压x100
+    int16_t Chassis_output;   // 电管输出功率 * 10
+    int16_t Cap_Power;  // 电容充电功率（正为充电，负为放电）* 10
     uint8_t Temperature; //温度
     Super_Cap_Return_Union Status;
 } Super_Cap_Return_Pack;
 
+void Super_cap_init(Super_Cap_Return_Pack *device);
+extern Super_Cap_Return_Pack super_cap_return_pack;
 #endif //RM_HERO_26_V1_0_RTOS_SUPERCAPACITOR_H

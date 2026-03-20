@@ -3,45 +3,53 @@
 //
 
 #include "referee_protocol.h"
-
 #include "string.h"
+#include "robot_global.h"
 
-// 定义全局变量，存储最新状态
-robot_status_t robot_status;
-power_heat_data_t power_heat_data;
+extern robot_ctrl_info_t robot_ctrl;
 
-// 从 ui_interface.c 引入 UI 自身 ID 变量
+typedef REFEREE_PACKED struct {
+    uint8_t robot_id;
+    uint8_t robot_level;
+    uint16_t current_HP;
+    uint16_t maximum_HP;
+    uint16_t shooter_barrel_cooling_value;
+    uint16_t shooter_barrel_heat_limit;
+    uint16_t chassis_power_limit;
+    uint8_t power_management_gimbal_output : 1;
+    uint8_t power_management_chassis_output : 1;
+    uint8_t power_management_shooter_output : 1;
+} referee_robot_status_raw_t;
+
+typedef REFEREE_PACKED struct {
+    uint16_t reserved1;
+    uint16_t reserved2;
+    float reserved3;
+    uint16_t buffer_energy;
+    uint16_t shooter_17mm_barrel_heat;
+    uint16_t shooter_42mm_barrel_heat;
+} referee_power_heat_raw_t;
+
+
+
 extern int ui_self_id;
 
-/**
- * @brief 裁判系统数据解析核心函数
- * @param frame 指向收到的完整数据帧头 (0xA5 开头) 的指针
- * @param len 收到的数据长度
- */
 void Referee_Data_Solve(uint8_t *frame, uint16_t len) {
-    // 1. 强制类型转换，读取帧头
-    frame_header_t *p_header = (frame_header_t *)frame;
-
-    // 2. 校验包头 0xA5
-    if (p_header->SOF != 0xA5) {
+    if (frame[0] != 0xA5) {
         return;
     }
 
-    // 3. 提取命令码 CMD_ID (帧头5字节之后紧接着的2个字节)
     uint16_t cmd_id = (frame[6] << 8) | frame[5];
-
-    // 4. 数据段起始地址指针 (帧头5字节 + CMD_ID 2字节 = 偏移量 7)
     uint8_t *data_ptr = frame + 7;
 
-    // 5. 根据 CMD_ID 拷贝数据到对应结构体
     switch (cmd_id) {
-        case 0x0201: // 机器人状态数据
-            memcpy(&robot_status, data_ptr, sizeof(robot_status_t));
-            ui_self_id = robot_status.robot_id;
+        case 0x0201:
+            memcpy(&robot_ctrl.referee.robot_status, data_ptr, sizeof(referee_robot_status_raw_t));
+            ui_self_id = robot_ctrl.referee.robot_status.robot_id;
             break;
 
-        case 0x0202: // 功率与热量数据
-            memcpy(&power_heat_data, data_ptr, sizeof(power_heat_data_t));
+        case 0x0202:
+            memcpy(&robot_ctrl.referee.power_heat, data_ptr + 6, sizeof(referee_power_heat_raw_t));
             break;
 
         default:

@@ -52,13 +52,12 @@ M3508_Pos_Data_t thumbwheel_priv;
 Can_Motor_t yaw_motor;
 GM6020_Data_t yaw_priv;
 
+float friction_comp = 0.0f;
+float friction_threshold = 800.0f; // 刚好能让云台动起来的最小电流值（在车上实际测出来！）
+
 
 float Kf = 3.8f; //YAW轴前馈补偿值
 float velocity_turn = 0;
-
-NotchFilter_t beltNotchFilter;
-
-char debug_buffer[20];
 
 // 拨弹盘状态机变量
 static uint8_t fire_prev_state = 0;  // 上一次 fire 状态
@@ -146,19 +145,19 @@ void chassis_control_task() {
     thumbwheel_priv.gear_ratio = 51.0f;  // 减速比 51:1
     thumbwheel_priv.round_count = 0;
     thumbwheel_priv.target_angle = 0;    // 初始目标角度为 0
-    PID_Init(&thumbwheel_priv.pos_pid, 4000.0f, 0.0f, 5.0f, 0, 500, 5000);  // 位置环 PID (需要根据实际调试)
-    PID_Init(&thumbwheel_priv.speed_pid, 27.0f, 1.0f, 0.0f, 0, 500, 16384);  // 速度环 PID
+    PID_Init(&thumbwheel_priv.pos_pid, 4000.0f, 0.0f, 5.0f, 0, 3500, 5000);  // 位置环 PID (需要根据实际调试)
+    PID_Init(&thumbwheel_priv.speed_pid, 27.0f, 1.0f, 0.0f, 0, 3500, 16384);  // 速度环 PID
     Can_Motor_Init(&thumbwheel_motor, &hcan1, 0x205, M3508_Pos_Decode, M3508_Pos_Update, &thumbwheel_priv);
 
     //yaw_priv.whether_extern_data = 1;
 
-    PID_Init(&yaw_priv.speed_pid, 500.0f, 0.14f, 50.00f,0, 500, 25000);  //450 0.14
-    PID_Init(&yaw_priv.pos_pid, 150.0f, 0.0f, 400.0f,0, 500, 6000);  // 450 0  500
+    PID_Init(&yaw_priv.speed_pid, 400.0f, 0.14f, 10.00f,0, 3500, 25000);  //450 0.14
+    PID_Init(&yaw_priv.pos_pid, 150.0f, 0.1f, 400.0f,0, 3500, 6000);  // 450 0  500
     Can_Motor_Init(&yaw_motor, &hcan1, 0x206, GM6020_Decode, GM6020_Update, &yaw_priv);
 
     PID_Init(&Follow, 2000.0f, 0.0f, 10.0f,0, 500, 5000);
 
-    NotchFilter_Init(&beltNotchFilter, 250.0f, 1000.0f, 0.5f);
+
 
 
 
@@ -187,63 +186,73 @@ void chassis_control_task() {
         world_error = world_yaw_target_angle - received_chassis.yaw_INS;
         world_error = Radian_Normalize(world_error);
 
-        float theta = yaw_priv.total_angle + 1.9f; // 1.5707963f = PI / 2
+        float theta = yaw_priv.total_angle + 2.5f; // 1.5707963f = PI / 2
         theta = Radian_Normalize(theta);
 
-        if (robot_ctrl.chassis_mode == CHASSIS_FOLLOW) {
-            float trans_speed = sqrtf(received_chassis.vx * received_chassis.vx + received_chassis.vy * received_chassis.vy);
+    // -------------------------------------------------------------
+        // 【核心修复】 RM 标准：底盘优选劣弧换向 (双向跟随)
+        // -------------------------------------------------------------
+        float follow_theta = theta;
 
-            // 2. 计算动态跟随系数 follow_weight (0.0f ~ 1.0f)
+        // 绝对不要去反转平移速度！底部的旋转矩阵会自动处理一切！
+        float chassis_vx = received_chassis.vx;
+        float chassis_vy = received_chassis.vy;
+
+        // 如果云台与底盘的夹角超过 90 度 (PI/2 ≈ 1.57rad)
+        // 我们仅仅欺骗底盘的 PID，让它以为车尾就是车头，不再转圈
+        if (follow_theta > 1.57f) {
+            follow_theta -= PI;
+        } else if (follow_theta < -1.57f) {
+            follow_theta += PI;
+        }
+
+        // 现在的 follow_theta 永远被限制在[-90度, +90度] 之间
+        // 180度的奇异点（突变点）被彻底消灭，而且运动方向绝对正确！！！
+
+        if (robot_ctrl.chassis_mode == CHASSIS_FOLLOW) {
+            float trans_speed = sqrtf(chassis_vx * chassis_vx + chassis_vy * chassis_vy);
+
+            // 动态权重计算
             float follow_weight = 0.0f;
-            float speed_threshold_low = 100.0f;   // 静止死区：低于此速度绝对不主动回正
-            float speed_threshold_high = 400.0f;  // 满载区：高于此速度全功率回正 (按你键盘W键是400来定)
+            float speed_threshold_low = 100.0f;
+            float speed_threshold_high = 400.0f;
 
             if (trans_speed < speed_threshold_low) {
                 follow_weight = 0.0f;
             } else if (trans_speed > speed_threshold_high) {
                 follow_weight = 1.0f;
             } else {
-                // 线性平滑过渡，防止跳变
                 follow_weight = (trans_speed - speed_threshold_low) / (speed_threshold_high - speed_threshold_low);
             }
 
-            // 3. 引入云台角度死区 (0.087rad ≈ 5度)
-            // 注意：必须新建一个 follow_theta 变量，绝对不能修改原有的 theta，
-            // 否则会破坏你下面那一套正确的底盘旋转矩阵！
+            // 云台角度死区
             float deadband = 0.087f;
-            float follow_theta = theta;
-
             if (fabsf(follow_theta) < deadband) {
                 follow_theta = 0.0f;
             } else {
-                // 减去死区，保证出死区时 PID 是从 0 平滑起步的
                 if (follow_theta > 0) follow_theta -= deadband;
                 if (follow_theta < 0) follow_theta += deadband;
             }
 
-            // 4. 计算原始的跟随PID，并乘上动态权重
+            // 计算跟随PID
             float raw_velocity_turn = PID_Calculate(&Follow, 0, follow_theta);
-            velocity_turn = raw_velocity_turn * follow_weight + received_chassis.vz * 10.0f;
-
+            velocity_turn = raw_velocity_turn * follow_weight * 3.0f + received_chassis.vz * 10.0f;
         }
         else if (robot_ctrl.chassis_mode == CHASSIS_SPIN){
-            velocity_turn = Get_Sine_Wave(2000,4000);
+            velocity_turn = Get_Sine_Wave(1000, 6000);
+
 
         }
         else {
             velocity_turn = 0;
         }
 
-        // 2. 坐标系旋转矩阵变换
-        // 将操作手的 vx(左右), vy(前后) 映射到底盘坐标系的 target_vx, target_vy
-
-
-
-        // 旋转矩阵：
-        // target_vx = vx * cos(theta) - vy * sin(theta)
-        // target_vy = vx * sin(theta) + vy * cos(theta)
-        float target_vx = received_chassis.vy * cosf(theta) - received_chassis.vx * sinf(theta);
-        float target_vy = received_chassis.vy * sinf(theta) + received_chassis.vx * cosf(theta);
+        // -------------------------------------------------------------
+        // 坐标系旋转矩阵变换
+        // 这里依然使用原始的 theta 和原始的 chassis_vx/vy，数学会自动接管一切！
+        // -------------------------------------------------------------
+        float target_vx = chassis_vy * cosf(theta) - chassis_vx * sinf(theta);
+        float target_vy = chassis_vy * sinf(theta) + chassis_vx * cosf(theta);
 
         velocity_14 = target_vy * 10.0f + target_vx * 10.0f;
         velocity_23 = target_vy * 10.0f - target_vx * 10.0f;
@@ -255,6 +264,7 @@ void chassis_control_task() {
 
 
             yaw_priv.target_angle = yaw_priv.total_angle + world_error;
+        yaw_priv.feedforward_current = Kf * velocity_turn + received_chassis.mouse_x_v * 0.2f ;
 
 
             // --- 拨弹盘电机控制逻辑 ---
@@ -270,7 +280,7 @@ void chassis_control_task() {
 
                 // 判断正转还是反转 (可以根据其他条件，比如鼠标滚轮)
                 // 这里假设 fire=1 是正转，你也可以根据实际需求修改
-                static float fire_angle_step = -1.07f;  // 每次转动 0.5 弧度
+                static float fire_angle_step = -1.046f;  // 每次转动 0.5 弧度
 
                 // 累加目标角度 (相对于当前位置)
                 thumbwheel_priv.target_angle += fire_angle_step;
@@ -343,8 +353,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             wheel_motor_1.output_value, wheel_motor_2.output_value,
             wheel_motor_3.output_value, wheel_motor_4.output_value);
 
+
+
         DJI_Motor_SendGroup_0x1FF(&hcan1,
-            thumbwheel_motor.output_value, (yaw_motor.output_value + (int16_t)(velocity_turn * Kf)) > 24990 ? 24990 : (yaw_motor.output_value + (int16_t)(velocity_turn * Kf)), 0, 0);
+            thumbwheel_motor.output_value, yaw_motor.output_value, 0, 0);
 
         // --- 4. 系统辨识采样 (可选) ---
         // 如果要做系统辨识，建议在这里通过 DMA 串口发送 yaw_motor 的数据

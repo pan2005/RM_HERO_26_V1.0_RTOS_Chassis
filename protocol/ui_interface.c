@@ -20,21 +20,32 @@ ui_2_frame_t _ui_2_frame;
 ui_5_frame_t _ui_5_frame;
 ui_7_frame_t _ui_7_frame;
 
-static volatile uint8_t uart6_tx_busy = 0;
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == USART6) {
-        uart6_tx_busy = 0;
-    }
-}
 
 void print_message(const uint8_t *message, const int length) {
-    if (uart6_tx_busy) {
-        return;
+    uint32_t wait_timeout = 20; // 设定 20 次重试
+    while (huart6.gState != HAL_UART_STATE_READY && wait_timeout > 0) {
+        osDelay(1);
+        wait_timeout--;
     }
 
-    uart6_tx_busy = 1;
+    // 2. 如果等了 20ms 还是 BUSY，说明硬件状态机崩溃了！
+    if (huart6.gState != HAL_UART_STATE_READY) {
+        // 【强制重置】终止 DMA 并强行把状态机掰正
+        HAL_UART_AbortTransmit(&huart6);
+        huart6.gState = HAL_UART_STATE_READY;
+        huart6.hdmatx->State = HAL_DMA_STATE_READY;
+        __HAL_UNLOCK(&huart6); // 强行解锁
+    }
+
+    // 3. 错误标志清除（防止溢出导致 DMA 拒发）
+    if (__HAL_UART_GET_FLAG(&huart6, UART_FLAG_ORE) != RESET) {
+        __HAL_UART_CLEAR_OREFLAG(&huart6);
+    }
+
+    // 4. 发送数据
     HAL_UART_Transmit_DMA(&huart6, (uint8_t*)message, length);
+    osDelay(5);
 }
 
 const unsigned char CRC8_TAB[256] = {
@@ -136,16 +147,16 @@ DEFINE_FRAME_PROC(5, 0x0103)
 DEFINE_FRAME_PROC(7, 0x0104)
 
 void ui_proc_string_frame(ui_string_frame_t *msg) {
+    msg->option.str_length = strlen(msg->option.string);
     msg->header.SOF = 0xA5;
-    msg->header.length = 51;
+    msg->header.length = 15 + msg->option.str_length;
     msg->header.seq = seq++;
     msg->header.crc8 = calc_crc8((uint8_t *) msg, 4);
     msg->header.cmd_id = 0x0301;
     msg->header.sub_id = 0x0110;
     msg->header.send_id = ui_self_id;
     msg->header.recv_id = ui_self_id + 256;
-    msg->option.str_length = strlen(msg->option.string);
-    msg->crc16 = calc_crc16((uint8_t *) msg, 58);
+    msg->crc16 = calc_crc16((uint8_t *) msg, 13 + 15 + msg->option.str_length);
 }
 
 void ui_proc_delete_frame(ui_delete_frame_t *msg) {
@@ -241,6 +252,7 @@ void ui_scan_and_send(const ui_interface_figure_t *ui_now_figures, uint8_t *ui_d
                 ui_proc_string_frame(&_ui_string_frame);
                 SEND_MESSAGE((uint8_t *) &_ui_string_frame, sizeof(_ui_string_frame));
                 ui_dirty_string[i]--;
+                osDelay(10);
             }
         }
     }

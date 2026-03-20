@@ -3,6 +3,7 @@
 #include "bsp_can.h"
 #include <string.h>
 #include "bsp_delay.h"
+#include "Supercapacitor.h"
 
 robot_ctrl_info_t robot_ctrl;
 
@@ -14,6 +15,7 @@ void Robot_Global_Init(control_mode_e control_mode_p) {
     // 结构体整体清零 (将所有浮点数置0，指针置空)
     //  memset(&robot_ctrl, 0, sizeof(robot_ctrl_info_t));
     BSP_CAN_Init();
+    Super_cap_init(&super_cap_return_pack);
 
     delay_init();
 
