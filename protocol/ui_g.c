@@ -7,7 +7,7 @@
 #include "ui_interface.h"
 #include "ui_g.h"
 
-#define TOTAL_FIGURE 4
+#define TOTAL_FIGURE 6
 #define TOTAL_STRING 4
 
 ui_interface_figure_t ui_g_now_figures[TOTAL_FIGURE];
@@ -16,6 +16,8 @@ ui_interface_string_t ui_g_now_strings[TOTAL_STRING];
 uint8_t ui_g_dirty_string[TOTAL_STRING];
 
 uint8_t ui_g_max_send_count[TOTAL_FIGURE + TOTAL_STRING] = {
+    1,
+    1,
     1,
     1,
     1,
@@ -73,6 +75,26 @@ void ui_init_g() {
     ui_g_Ungroup_TH_current_number->width = 2;
     ui_g_Ungroup_TH_current_number->font_size = 20;
     ui_g_Ungroup_TH_current_number->number = 12345;
+
+    ui_g_Ungroup_CAP_bar_bg->figure_type = 0;
+    ui_g_Ungroup_CAP_bar_bg->operate_type = 1;
+    ui_g_Ungroup_CAP_bar_bg->layer = 0;
+    ui_g_Ungroup_CAP_bar_bg->color = 8;
+    ui_g_Ungroup_CAP_bar_bg->start_x = 180;
+    ui_g_Ungroup_CAP_bar_bg->start_y = 688;
+    ui_g_Ungroup_CAP_bar_bg->width = 12;
+    ui_g_Ungroup_CAP_bar_bg->end_x = 360;
+    ui_g_Ungroup_CAP_bar_bg->end_y = 688;
+
+    ui_g_Ungroup_CAP_bar_fill->figure_type = 0;
+    ui_g_Ungroup_CAP_bar_fill->operate_type = 1;
+    ui_g_Ungroup_CAP_bar_fill->layer = 0;
+    ui_g_Ungroup_CAP_bar_fill->color = 2;
+    ui_g_Ungroup_CAP_bar_fill->start_x = 180;
+    ui_g_Ungroup_CAP_bar_fill->start_y = 688;
+    ui_g_Ungroup_CAP_bar_fill->width = 8;
+    ui_g_Ungroup_CAP_bar_fill->end_x = 180;
+    ui_g_Ungroup_CAP_bar_fill->end_y = 688;
 
     ui_g_Ungroup_AUTO->figure_type = 7;
     ui_g_Ungroup_AUTO->operate_type = 1;
