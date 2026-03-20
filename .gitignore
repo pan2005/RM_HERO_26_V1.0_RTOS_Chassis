@@ -1,0 +1,29 @@
+# Build outputs
+/build/
+/cmake-build-*/
+
+# CMake / Ninja generated files
+/CMakeCache.txt
+/CMakeFiles/
+/compile_commands.json
+/cmake_install.cmake
+/build.ninja
+/.ninja_deps
+/.ninja_log
+
+# Firmware artifacts
+/*.elf
+/*.bin
+/*.hex
+/*.map
+
+# Logs and temp files
+*.log
+*.tmp
+
+# IDE files
+/.idea/
+/.vscode/
+
+# Local agent instructions
+/AGENTS.md
