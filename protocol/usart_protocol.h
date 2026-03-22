@@ -17,6 +17,7 @@
 // 1. 云台发送给底盘的数据包 (反馈状态)
 typedef struct {
     float yaw_encoder;  //YAW轴电机编码器转换的角度  total angle
+    uint8_t robot_id;
 
 } GimbalInfo_t;
 

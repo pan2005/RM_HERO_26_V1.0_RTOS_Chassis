@@ -43,6 +43,7 @@ void communication_with_gimbal_task(void * argument) {
     com_with_gimbal_init();
     HAL_Delay(50);
     while (1) {
+        gimbal_info.robot_id = robot_ctrl.referee.robot_status.robot_id;
 
         Protocol_Pack_GimbalInfo(&gimbal_info,tx_buf, &tx_len);
         usart_tx_binary(&huart1, tx_buf, tx_len);

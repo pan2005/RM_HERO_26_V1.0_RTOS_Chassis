@@ -134,6 +134,7 @@ int main(void)
   BSP_CAN_Init();
 
   Super_cap_init(&super_cap_return_pack);
+  buzzer_init();
 
 
  // remote_control_init();

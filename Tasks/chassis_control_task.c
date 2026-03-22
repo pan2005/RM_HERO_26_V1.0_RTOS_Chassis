@@ -15,13 +15,13 @@
 
 #include "pid.h"
 #include "DJI_Motor.h"
-#include "LKMF9025.h"
-#include "usart.h"
+
 #include "com_with_gimbal.h"
 #include "robot_global.h"
 #include <math.h>
 #include "irr_fliter.h"
 #include "bsp_usart.h"
+#include "Supercapacitor.h"
 
 extern CAN_HandleTypeDef hcan1;
 extern TIM_HandleTypeDef htim6;
@@ -62,6 +62,12 @@ float velocity_turn = 0;
 // 拨弹盘状态机变量
 static uint8_t fire_prev_state = 0;  // 上一次 fire 状态
 static uint8_t fire_rising_detected = 0;  // 上升沿检测标志
+
+// 功率限制状态变量
+static uint8_t power_limit_active = 0;  // 功率限制激活标志
+static const int16_t VOLTAGE_LOW_THRESHOLD = 550;    // 低电压阈值 (5.5V x100)
+static const int16_t VOLTAGE_HIGH_THRESHOLD = 1000;  // 恢复电压阈值 (10.0V x100)
+static const float SPEED_SCALE_FACTOR = 0.5f;        // 速度缩放比例 (50%)
 
 static const uint16_t T_LIST[] = {
 
@@ -181,6 +187,12 @@ void chassis_control_task() {
 
         world_yaw_target_angle = received_chassis.yaw;
 
+        // 功率限制状态机更新
+        if (super_cap_return_pack.Capacity_Voltage < VOLTAGE_LOW_THRESHOLD) {
+            power_limit_active = 1;  // 进入功率限制状态
+        } else if (super_cap_return_pack.Capacity_Voltage > VOLTAGE_HIGH_THRESHOLD) {
+            power_limit_active = 0;  // 退出功率限制状态
+        }
 
         //yaw_priv.INS_angle = received_chassis.yaw_INS;
         world_error = world_yaw_target_angle - received_chassis.yaw_INS;
@@ -234,14 +246,33 @@ void chassis_control_task() {
                 if (follow_theta < 0) follow_theta += deadband;
             }
 
-            // 计算跟随PID
+            // 计算跟随 PID
             float raw_velocity_turn = PID_Calculate(&Follow, 0, follow_theta);
-            velocity_turn = raw_velocity_turn * follow_weight * 3.0f + received_chassis.vz * 10.0f;
+
+            // 应用功率限制
+            if (power_limit_active) {
+                velocity_turn = raw_velocity_turn * follow_weight * 3.0f * SPEED_SCALE_FACTOR + received_chassis.vz * 10.0f * SPEED_SCALE_FACTOR;
+            } else {
+                velocity_turn = raw_velocity_turn * follow_weight * 3.0f + received_chassis.vz * 10.0f;
+            }
         }
         else if (robot_ctrl.chassis_mode == CHASSIS_SPIN){
-            velocity_turn = Get_Sine_Wave(1000, 6000);
-
-
+            // 应用功率限制
+            if (power_limit_active) {
+                if(super_cap_return_pack.Capacity_Voltage > 550){
+                    velocity_turn = Get_Sine_Wave(500, 3000);  // 降低幅值和偏移
+                }
+                else{
+                    velocity_turn = Get_Sine_Wave(250, 1500);  // 进一步降低
+                }
+            } else {
+                if(super_cap_return_pack.Capacity_Voltage > 550){
+                    velocity_turn = Get_Sine_Wave(1000, 6000);
+                }
+                else if(super_cap_return_pack.Capacity_Voltage < 550){
+                    velocity_turn = Get_Sine_Wave(500, 3000);
+                }
+            }
         }
         else {
             velocity_turn = 0;
@@ -257,11 +288,18 @@ void chassis_control_task() {
         velocity_14 = target_vy * 10.0f + target_vx * 10.0f;
         velocity_23 = target_vy * 10.0f - target_vx * 10.0f;
 
+        // 应用功率限制到轮子速度
+        if (power_limit_active) {
+            wheel_priv_1.target_speed = (velocity_14 + velocity_turn) * SPEED_SCALE_FACTOR;
+            wheel_priv_2.target_speed = -(velocity_23 - velocity_turn) * SPEED_SCALE_FACTOR;
+            wheel_priv_3.target_speed = (velocity_23 + velocity_turn) * SPEED_SCALE_FACTOR;
+            wheel_priv_4.target_speed = -(velocity_14 - velocity_turn) * SPEED_SCALE_FACTOR;
+        } else {
             wheel_priv_1.target_speed = velocity_14 + velocity_turn;
-            wheel_priv_2.target_speed = -(velocity_23 - velocity_turn);  //因为安装位置的问题
+            wheel_priv_2.target_speed = -(velocity_23 - velocity_turn);
             wheel_priv_3.target_speed = velocity_23 + velocity_turn;
             wheel_priv_4.target_speed = -(velocity_14 - velocity_turn);
-
+        }
 
             yaw_priv.target_angle = yaw_priv.total_angle + world_error;
         yaw_priv.feedforward_current = Kf * velocity_turn + received_chassis.mouse_x_v * 0.2f ;
