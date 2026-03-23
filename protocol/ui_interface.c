@@ -128,6 +128,176 @@ uint16_t calc_crc16(uint8_t *pchMessage, uint32_t dwLength)
     return wCRC;
 }
 
+#define UI_FRAME_HEADER_SIZE 5U
+#define UI_CMD_ID_SIZE 2U
+#define UI_DATA_HEADER_SIZE 6U
+#define UI_FRAME_TAIL_SIZE 2U
+#define UI_GRAPHIC_SIZE 15U
+#define UI_STRING_DATA_SIZE 30U
+#define UI_FIGURE_FRAME_MAX_SIZE (UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + UI_DATA_HEADER_SIZE + UI_GRAPHIC_SIZE * 7U + UI_FRAME_TAIL_SIZE)
+#define UI_STRING_FRAME_SIZE (UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + UI_DATA_HEADER_SIZE + UI_GRAPHIC_SIZE + UI_STRING_DATA_SIZE + UI_FRAME_TAIL_SIZE)
+#define UI_DELETE_FRAME_SIZE (UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + UI_DATA_HEADER_SIZE + 2U + UI_FRAME_TAIL_SIZE)
+
+static uint8_t ui_figure_tx_buf[UI_FIGURE_FRAME_MAX_SIZE];
+static uint8_t ui_string_tx_buf[UI_STRING_FRAME_SIZE];
+static uint8_t ui_delete_tx_buf[UI_DELETE_FRAME_SIZE];
+
+static void pack_frame_header(uint8_t *buf, uint16_t data_length)
+{
+    buf[0] = 0xA5;
+    buf[1] = (uint8_t)(data_length & 0xFFU);
+    buf[2] = (uint8_t)((data_length >> 8) & 0xFFU);
+    buf[3] = seq++;
+    buf[4] = calc_crc8(buf, 4);
+}
+
+static void pack_interactive_header(uint8_t *buf, uint16_t data_cmd_id)
+{
+    buf[0] = (uint8_t)(0x0301U & 0xFFU);
+    buf[1] = (uint8_t)((0x0301U >> 8) & 0xFFU);
+    buf[2] = (uint8_t)(data_cmd_id & 0xFFU);
+    buf[3] = (uint8_t)((data_cmd_id >> 8) & 0xFFU);
+    buf[4] = (uint8_t)(ui_self_id & 0xFFU);
+    buf[5] = (uint8_t)((ui_self_id >> 8) & 0xFFU);
+    buf[6] = (uint8_t)((ui_self_id + 256) & 0xFFU);
+    buf[7] = (uint8_t)(((ui_self_id + 256) >> 8) & 0xFFU);
+}
+
+static void finalize_and_send_frame(uint8_t *buf, uint16_t total_length)
+{
+    uint16_t crc16 = calc_crc16(buf, total_length - UI_FRAME_TAIL_SIZE);
+
+    buf[total_length - 2U] = (uint8_t)(crc16 & 0xFFU);
+    buf[total_length - 1U] = (uint8_t)((crc16 >> 8) & 0xFFU);
+    SEND_MESSAGE(buf, total_length);
+}
+
+static void pack_figure15(uint8_t out[UI_GRAPHIC_SIZE], const ui_interface_figure_t *figure)
+{
+    uint32_t cfg1;
+    uint32_t cfg2;
+    uint32_t cfg3;
+
+    memcpy(&out[0], figure->figure_name, 3);
+
+    cfg1 = ((uint32_t)(figure->operate_type & 0x07U)) |
+           (((uint32_t)(figure->figure_type & 0x07U)) << 3) |
+           (((uint32_t)(figure->layer & 0x0FU)) << 6) |
+           (((uint32_t)(figure->color & 0x0FU)) << 10) |
+           (((uint32_t)(figure->_a & 0x01FFU)) << 14) |
+           (((uint32_t)(figure->_b & 0x01FFU)) << 23);
+
+    cfg2 = ((uint32_t)(figure->width & 0x03FFU)) |
+           (((uint32_t)(figure->start_x & 0x07FFU)) << 10) |
+           (((uint32_t)(figure->start_y & 0x07FFU)) << 21);
+
+    cfg3 = ((uint32_t)(figure->_c & 0x03FFU)) |
+           (((uint32_t)(figure->_d & 0x07FFU)) << 10) |
+           (((uint32_t)(figure->_e & 0x07FFU)) << 21);
+
+    out[3] = (uint8_t)(cfg1 & 0xFFU);
+    out[4] = (uint8_t)((cfg1 >> 8) & 0xFFU);
+    out[5] = (uint8_t)((cfg1 >> 16) & 0xFFU);
+    out[6] = (uint8_t)((cfg1 >> 24) & 0xFFU);
+    out[7] = (uint8_t)(cfg2 & 0xFFU);
+    out[8] = (uint8_t)((cfg2 >> 8) & 0xFFU);
+    out[9] = (uint8_t)((cfg2 >> 16) & 0xFFU);
+    out[10] = (uint8_t)((cfg2 >> 24) & 0xFFU);
+    out[11] = (uint8_t)(cfg3 & 0xFFU);
+    out[12] = (uint8_t)((cfg3 >> 8) & 0xFFU);
+    out[13] = (uint8_t)((cfg3 >> 16) & 0xFFU);
+    out[14] = (uint8_t)((cfg3 >> 24) & 0xFFU);
+}
+
+static void pack_number15(uint8_t out[UI_GRAPHIC_SIZE], const ui_interface_number_t *number)
+{
+    ui_interface_figure_t packed = {0};
+
+    memcpy(packed.figure_name, number->figure_name, 3);
+    packed.operate_type = number->operate_type;
+    packed.figure_type = number->figure_type;
+    packed.layer = number->layer;
+    packed.color = number->color;
+    packed._a = number->font_size;
+    packed._b = 0U;
+    packed.width = number->width;
+    packed.start_x = number->start_x;
+    packed.start_y = number->start_y;
+    packed._c = (uint32_t)number->number & 0x03FFU;
+    packed._d = ((uint32_t)number->number >> 10) & 0x07FFU;
+    packed._e = ((uint32_t)number->number >> 21) & 0x07FFU;
+    pack_figure15(out, &packed);
+}
+
+static void pack_string15(uint8_t out[UI_GRAPHIC_SIZE], const ui_interface_string_t *string)
+{
+    ui_interface_figure_t packed = {0};
+
+    memcpy(packed.figure_name, string->figure_name, 3);
+    packed.operate_type = string->operate_type;
+    packed.figure_type = string->figure_type;
+    packed.layer = string->layer;
+    packed.color = string->color;
+    packed._a = string->font_size;
+    packed._b = string->str_length;
+    packed.width = string->width;
+    packed.start_x = string->start_x;
+    packed.start_y = string->start_y;
+    pack_figure15(out, &packed);
+}
+
+static void send_figure_frame(const ui_interface_figure_t *figures, uint8_t count, uint16_t data_cmd_id)
+{
+    uint8_t *frame = ui_figure_tx_buf;
+    uint16_t data_length = UI_DATA_HEADER_SIZE + (uint16_t)UI_GRAPHIC_SIZE * count;
+    uint16_t total_length = UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + data_length + UI_FRAME_TAIL_SIZE;
+
+    memset(frame, 0, total_length);
+
+    pack_frame_header(frame, data_length);
+    pack_interactive_header(&frame[UI_FRAME_HEADER_SIZE], data_cmd_id);
+
+    for (uint8_t i = 0; i < count; i++) {
+        if (figures[i].figure_type == 6U) {
+            pack_number15(&frame[13U + i * UI_GRAPHIC_SIZE], (const ui_interface_number_t *)&figures[i]);
+        } else {
+            pack_figure15(&frame[13U + i * UI_GRAPHIC_SIZE], &figures[i]);
+        }
+    }
+
+    finalize_and_send_frame(frame, total_length);
+}
+
+static void send_string_frame(const ui_interface_string_t *string)
+{
+    uint8_t *frame = ui_string_tx_buf;
+    uint16_t data_length = UI_DATA_HEADER_SIZE + UI_GRAPHIC_SIZE + UI_STRING_DATA_SIZE;
+    uint16_t total_length = UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + data_length + UI_FRAME_TAIL_SIZE;
+
+    memset(frame, 0, total_length);
+
+    pack_frame_header(frame, data_length);
+    pack_interactive_header(&frame[UI_FRAME_HEADER_SIZE], 0x0110U);
+    pack_string15(&frame[13], string);
+    memcpy(&frame[28], string->string, UI_STRING_DATA_SIZE);
+    finalize_and_send_frame(frame, total_length);
+}
+
+static void send_delete_frame(uint8_t delete_type, uint8_t layer)
+{
+    uint8_t *frame = ui_delete_tx_buf;
+    uint16_t data_length = UI_DATA_HEADER_SIZE + 2U;
+    uint16_t total_length = UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + data_length + UI_FRAME_TAIL_SIZE;
+
+    memset(frame, 0, total_length);
+
+    pack_frame_header(frame, data_length);
+    pack_interactive_header(&frame[UI_FRAME_HEADER_SIZE], 0x0100U);
+    frame[13] = delete_type;
+    frame[14] = layer;
+    finalize_and_send_frame(frame, total_length);
+}
+
 #define DEFINE_FRAME_PROC(num, id)                          \
 void ui_proc_ ## num##_frame(ui_ ## num##_frame_t *msg) {   \
     msg->header.SOF = 0xA5;                                 \
@@ -176,8 +346,7 @@ ui_delete_frame_t ui_delete_frame;
 void ui_delete_layer(const uint8_t delete_type, const uint8_t layer) {
     ui_delete_frame.delete_type = delete_type;
     ui_delete_frame.layer = layer;
-    ui_proc_delete_frame(&ui_delete_frame);
-    SEND_MESSAGE((uint8_t *) &ui_delete_frame, sizeof(ui_delete_frame));
+    send_delete_frame(delete_type, layer);
 }
 
 void ui_scan_and_send(const ui_interface_figure_t *ui_now_figures, uint8_t *ui_dirty_figure,
@@ -227,17 +396,13 @@ void ui_scan_and_send(const ui_interface_figure_t *ui_now_figures, uint8_t *ui_d
                         }
                     }
                     if (pack_size == 7) {
-                        ui_proc_7_frame(&_ui_7_frame);
-                        SEND_MESSAGE((uint8_t *) &_ui_7_frame, sizeof(_ui_7_frame));
+                        send_figure_frame(_ui_7_frame.data, 7U, 0x0104U);
                     } else if (pack_size == 5) {
-                        ui_proc_5_frame(&_ui_5_frame);
-                        SEND_MESSAGE((uint8_t *) &_ui_5_frame, sizeof(_ui_5_frame));
+                        send_figure_frame(_ui_5_frame.data, 5U, 0x0103U);
                     } else if (pack_size == 2) {
-                        ui_proc_2_frame(&_ui_2_frame);
-                        SEND_MESSAGE((uint8_t *) &_ui_2_frame, sizeof(_ui_2_frame));
+                        send_figure_frame(_ui_2_frame.data, 2U, 0x0102U);
                     } else {
-                        ui_proc_1_frame(&_ui_1_frame);
-                        SEND_MESSAGE((uint8_t *) &_ui_1_frame, sizeof(_ui_1_frame));
+                        send_figure_frame(_ui_1_frame.data, 1U, 0x0101U);
                     }
                 }
                 now_cap++;
@@ -248,9 +413,7 @@ void ui_scan_and_send(const ui_interface_figure_t *ui_now_figures, uint8_t *ui_d
     if (total_strings > 0) {
         for (int i = 0; i < total_strings; i++) {
             if (ui_dirty_string[i] > 0) {
-                _ui_string_frame.option = ui_now_strings[i];
-                ui_proc_string_frame(&_ui_string_frame);
-                SEND_MESSAGE((uint8_t *) &_ui_string_frame, sizeof(_ui_string_frame));
+                send_string_frame(&ui_now_strings[i]);
                 ui_dirty_string[i]--;
                 osDelay(10);
             }
