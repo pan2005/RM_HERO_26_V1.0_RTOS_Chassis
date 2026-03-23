@@ -24,7 +24,7 @@ typedef REFEREE_PACKED struct {
 typedef REFEREE_PACKED struct {
     uint16_t reserved1;
     uint16_t reserved2;
-    float reserved3;
+    float chassis_power;
     uint16_t buffer_energy;
     uint16_t shooter_17mm_barrel_heat;
     uint16_t shooter_42mm_barrel_heat;
@@ -49,8 +49,16 @@ void Referee_Data_Solve(uint8_t *frame, uint16_t len) {
             break;
 
         case 0x0202:
-            memcpy(&robot_ctrl.referee.power_heat, data_ptr + 6, sizeof(referee_power_heat_raw_t));
+        {
+            referee_power_heat_raw_t power_heat_raw;
+
+            memcpy(&power_heat_raw, data_ptr, sizeof(power_heat_raw));
+            robot_ctrl.referee.power_heat.chassis_power = power_heat_raw.chassis_power;
+            robot_ctrl.referee.power_heat.buffer_energy = power_heat_raw.buffer_energy;
+            robot_ctrl.referee.power_heat.shooter_17mm_barrel_heat = power_heat_raw.shooter_17mm_barrel_heat;
+            robot_ctrl.referee.power_heat.shooter_42mm_barrel_heat = power_heat_raw.shooter_42mm_barrel_heat;
             break;
+        }
 
         default:
             break;

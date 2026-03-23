@@ -236,7 +236,7 @@ void chassis_control_task() {
 
             // 计算跟随PID
             float raw_velocity_turn = PID_Calculate(&Follow, 0, follow_theta);
-            velocity_turn = raw_velocity_turn * follow_weight * 3.0f + received_chassis.vz * 10.0f;
+            velocity_turn = raw_velocity_turn * follow_weight * 3.0f + received_chassis.vz * 20.0f;
         }
         else if (robot_ctrl.chassis_mode == CHASSIS_SPIN){
             velocity_turn = Get_Sine_Wave(1000, 6000);
