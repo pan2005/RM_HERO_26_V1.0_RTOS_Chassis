@@ -24,6 +24,9 @@
 # IDE files
 /.idea/
 /.vscode/
+/.settings/
+/.cproject
+/.project
 
 # Local agent instructions
 /AGENTS.md
