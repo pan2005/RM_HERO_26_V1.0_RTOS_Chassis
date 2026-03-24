@@ -96,6 +96,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Tasks/ui_task.h
         protocol/referee_protocol.c
         protocol/referee_protocol.h
+        applications/DM_Motor.c
+        applications/DM_Motor.h
 )
 
 # Add STM32CubeMX generated sources

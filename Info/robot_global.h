@@ -51,7 +51,6 @@ typedef struct {
 } referee_robot_status_t;
 
 typedef struct {
-    float chassis_power;
     uint16_t buffer_energy;
     uint16_t shooter_17mm_barrel_heat;
     uint16_t shooter_42mm_barrel_heat;

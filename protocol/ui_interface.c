@@ -14,6 +14,15 @@
 uint8_t seq = 0;
 int ui_self_id = 1;
 
+static uint16_t ui_client_id_from_robot_id(uint16_t robot_id)
+{
+    if ((robot_id >= 1U && robot_id <= 7U) || (robot_id >= 101U && robot_id <= 107U)) {
+        return robot_id + 256U;
+    }
+
+    return 0x0101U;
+}
+
 ui_string_frame_t _ui_string_frame;
 ui_1_frame_t _ui_1_frame;
 ui_2_frame_t _ui_2_frame;
@@ -153,14 +162,16 @@ static void pack_frame_header(uint8_t *buf, uint16_t data_length)
 
 static void pack_interactive_header(uint8_t *buf, uint16_t data_cmd_id)
 {
+    uint16_t client_id = ui_client_id_from_robot_id((uint16_t)ui_self_id);
+
     buf[0] = (uint8_t)(0x0301U & 0xFFU);
     buf[1] = (uint8_t)((0x0301U >> 8) & 0xFFU);
     buf[2] = (uint8_t)(data_cmd_id & 0xFFU);
     buf[3] = (uint8_t)((data_cmd_id >> 8) & 0xFFU);
     buf[4] = (uint8_t)(ui_self_id & 0xFFU);
     buf[5] = (uint8_t)((ui_self_id >> 8) & 0xFFU);
-    buf[6] = (uint8_t)((ui_self_id + 256) & 0xFFU);
-    buf[7] = (uint8_t)(((ui_self_id + 256) >> 8) & 0xFFU);
+    buf[6] = (uint8_t)(client_id & 0xFFU);
+    buf[7] = (uint8_t)((client_id >> 8) & 0xFFU);
 }
 
 static void finalize_and_send_frame(uint8_t *buf, uint16_t total_length)

@@ -109,10 +109,6 @@ static float ui_chassis_power_from_feedback(void)
 {
     int32_t chassis_power_x10 = super_cap_return_pack.Chassis_output;
 
-    if (chassis_power_x10 == 0) {
-        chassis_power_x10 = (int32_t)(robot_ctrl.referee.power_heat.chassis_power * SUPER_CAP_POWER_SCALE);
-    }
-
     if (chassis_power_x10 < 0) {
         chassis_power_x10 = -chassis_power_x10;
     }
