@@ -2,7 +2,7 @@
 #include "ui_interface.h"
 #include "ui_g.h"
 
-#define TOTAL_FIGURE 9
+#define TOTAL_FIGURE 13
 #define TOTAL_STRING 5
 
 ui_interface_figure_t ui_g_now_figures[TOTAL_FIGURE];
@@ -20,6 +20,10 @@ uint8_t ui_g_max_send_count[TOTAL_FIGURE + TOTAL_STRING] = {
     3,
     3,
     3,
+    1,
+    1,
+    1,
+    1,
     3,
     3,
     3,
@@ -64,6 +68,46 @@ void ui_init_g() {
     ui_g_Ungroup_TRIG_current_number->width = 2;
     ui_g_Ungroup_TRIG_current_number->font_size = 20;
     ui_g_Ungroup_TRIG_current_number->number = 0;
+
+    ui_g_Ungroup_AimLine_top->figure_type = 0;
+    ui_g_Ungroup_AimLine_top->operate_type = 1;
+    ui_g_Ungroup_AimLine_top->layer = 0;
+    ui_g_Ungroup_AimLine_top->color = 2;
+    ui_g_Ungroup_AimLine_top->start_x = 950;
+    ui_g_Ungroup_AimLine_top->start_y = 492;
+    ui_g_Ungroup_AimLine_top->width = 2;
+    ui_g_Ungroup_AimLine_top->end_x = 970;
+    ui_g_Ungroup_AimLine_top->end_y = 492;
+
+    ui_g_Ungroup_AimLine_mid->figure_type = 0;
+    ui_g_Ungroup_AimLine_mid->operate_type = 1;
+    ui_g_Ungroup_AimLine_mid->layer = 0;
+    ui_g_Ungroup_AimLine_mid->color = 2;
+    ui_g_Ungroup_AimLine_mid->start_x = 950;
+    ui_g_Ungroup_AimLine_mid->start_y = 470;
+    ui_g_Ungroup_AimLine_mid->width = 2;
+    ui_g_Ungroup_AimLine_mid->end_x = 970;
+    ui_g_Ungroup_AimLine_mid->end_y = 470;
+
+    ui_g_Ungroup_AimLine_low->figure_type = 0;
+    ui_g_Ungroup_AimLine_low->operate_type = 1;
+    ui_g_Ungroup_AimLine_low->layer = 0;
+    ui_g_Ungroup_AimLine_low->color = 2;
+    ui_g_Ungroup_AimLine_low->start_x = 950;
+    ui_g_Ungroup_AimLine_low->start_y = 448;
+    ui_g_Ungroup_AimLine_low->width = 2;
+    ui_g_Ungroup_AimLine_low->end_x = 970;
+    ui_g_Ungroup_AimLine_low->end_y = 448;
+
+    ui_g_Ungroup_AimLine_vertical->figure_type = 0;
+    ui_g_Ungroup_AimLine_vertical->operate_type = 1;
+    ui_g_Ungroup_AimLine_vertical->layer = 0;
+    ui_g_Ungroup_AimLine_vertical->color = 2;
+    ui_g_Ungroup_AimLine_vertical->start_x = 960;
+    ui_g_Ungroup_AimLine_vertical->start_y = 440;
+    ui_g_Ungroup_AimLine_vertical->width = 2;
+    ui_g_Ungroup_AimLine_vertical->end_x = 960;
+    ui_g_Ungroup_AimLine_vertical->end_y = 540;
 
     ui_g_Ungroup_CAP_voltage_number->figure_type = 6;
     ui_g_Ungroup_CAP_voltage_number->operate_type = 1;
@@ -214,10 +258,21 @@ void ui_init_g() {
 
     ui_g_Ungroup_CAP_arc_bg_max_send_count = 0;
     ui_g_Ungroup_CHASSIS_bar_bg_max_send_count = 0;
-    ui_g_dirty_figure[2] = 0;
-    ui_g_dirty_figure[4] = 0;
 
     SCAN_AND_SEND();
+    SCAN_AND_SEND();
+    SCAN_AND_SEND();
+
+    ui_g_Ungroup_AimLine_top_max_send_count = 0;
+    ui_g_Ungroup_AimLine_mid_max_send_count = 0;
+    ui_g_Ungroup_AimLine_low_max_send_count = 0;
+    ui_g_Ungroup_AimLine_vertical_max_send_count = 0;
+    ui_g_dirty_figure[2] = 0;
+    ui_g_dirty_figure[4] = 0;
+    ui_g_dirty_figure[9] = 0;
+    ui_g_dirty_figure[10] = 0;
+    ui_g_dirty_figure[11] = 0;
+    ui_g_dirty_figure[12] = 0;
 
     for (int i = 0; i < TOTAL_FIGURE; i++) {
         ui_g_now_figures[i].operate_type = 2;

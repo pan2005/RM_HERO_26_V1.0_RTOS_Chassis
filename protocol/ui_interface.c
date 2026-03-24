@@ -146,6 +146,8 @@ uint16_t calc_crc16(uint8_t *pchMessage, uint32_t dwLength)
 #define UI_FIGURE_FRAME_MAX_SIZE (UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + UI_DATA_HEADER_SIZE + UI_GRAPHIC_SIZE * 7U + UI_FRAME_TAIL_SIZE)
 #define UI_STRING_FRAME_SIZE (UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + UI_DATA_HEADER_SIZE + UI_GRAPHIC_SIZE + UI_STRING_DATA_SIZE + UI_FRAME_TAIL_SIZE)
 #define UI_DELETE_FRAME_SIZE (UI_FRAME_HEADER_SIZE + UI_CMD_ID_SIZE + UI_DATA_HEADER_SIZE + 2U + UI_FRAME_TAIL_SIZE)
+#define UI_MAX_FIGURE_PACKETS_PER_UPDATE 2U
+#define UI_FIGURE_PACKET_DELAY_MS 30U
 
 static uint8_t ui_figure_tx_buf[UI_FIGURE_FRAME_MAX_SIZE];
 static uint8_t ui_string_tx_buf[UI_STRING_FRAME_SIZE];
@@ -279,6 +281,40 @@ static void send_figure_frame(const ui_interface_figure_t *figures, uint8_t coun
     finalize_and_send_frame(frame, total_length);
 }
 
+static uint16_t ui_figure_cmd_id_from_count(uint8_t count)
+{
+    if (count >= 7U) {
+        return 0x0104U;
+    }
+
+    if (count >= 5U) {
+        return 0x0103U;
+    }
+
+    if (count >= 2U) {
+        return 0x0102U;
+    }
+
+    return 0x0101U;
+}
+
+static uint8_t ui_figure_pack_size_from_remain(int remain_size)
+{
+    if (remain_size >= 7) {
+        return 7U;
+    }
+
+    if (remain_size >= 5) {
+        return 5U;
+    }
+
+    if (remain_size >= 2) {
+        return 2U;
+    }
+
+    return 1U;
+}
+
 static void send_string_frame(const ui_interface_string_t *string)
 {
     uint8_t *frame = ui_string_tx_buf;
@@ -365,59 +401,55 @@ void ui_scan_and_send(const ui_interface_figure_t *ui_now_figures, uint8_t *ui_d
                       const int total_figures, const int total_strings) {
     if (total_figures > 0) {
         int total_figure = 0;
+        uint8_t sent_packets = 0U;
+
         for (int i = 0; i < total_figures; i++) {
             if (ui_dirty_figure[i] > 0) {
                 total_figure++;
             }
         }
-        for (int i = 0, now_cap = 0, pack_size = 0; i < total_figures; i++) {
-            if (ui_dirty_figure[i] > 0) {
-                const int now_idx = now_cap % 7;
-                if (now_idx == 0) {
-                    const int remain_size = total_figure - now_cap;
-                    if (remain_size > 5) {
-                        pack_size = 7;
-                    } else if (remain_size > 2) {
-                        pack_size = 5;
-                    } else if (remain_size > 1) {
-                        pack_size = 2;
-                    } else {
-                        pack_size = 1;
-                    }
+
+        while (total_figure > 0 && sent_packets < UI_MAX_FIGURE_PACKETS_PER_UPDATE) {
+            uint8_t pack_size = ui_figure_pack_size_from_remain(total_figure);
+            uint8_t packed_count = 0U;
+
+            for (int i = 0; i < total_figures && packed_count < pack_size; i++) {
+                if (ui_dirty_figure[i] == 0) {
+                    continue;
                 }
-                if (pack_size == 7) {
-                    _ui_7_frame.data[now_idx] = ui_now_figures[i];
-                } else if (pack_size == 5) {
-                    _ui_5_frame.data[now_idx] = ui_now_figures[i];
-                } else if (pack_size == 2) {
-                    _ui_2_frame.data[now_idx] = ui_now_figures[i];
+
+                if (pack_size == 7U) {
+                    _ui_7_frame.data[packed_count] = ui_now_figures[i];
+                } else if (pack_size == 5U) {
+                    _ui_5_frame.data[packed_count] = ui_now_figures[i];
+                } else if (pack_size == 2U) {
+                    _ui_2_frame.data[packed_count] = ui_now_figures[i];
                 } else {
-                    _ui_1_frame.data[now_idx] = ui_now_figures[i];
+                    _ui_1_frame.data[packed_count] = ui_now_figures[i];
                 }
-                if (now_idx + 1 == pack_size || now_cap + 1 == total_figure) {
-                    for (int j = now_idx + 1; j < pack_size + 1; j++) {
-                        if (pack_size == 7) {
-                            _ui_7_frame.data[j].operate_type = 0;
-                        } else if (pack_size == 5) {
-                            _ui_5_frame.data[j].operate_type = 0;
-                        } else if (pack_size == 2) {
-                            _ui_2_frame.data[j].operate_type = 0;
-                        } else {
-                            _ui_1_frame.data[j].operate_type = 0;
-                        }
-                    }
-                    if (pack_size == 7) {
-                        send_figure_frame(_ui_7_frame.data, 7U, 0x0104U);
-                    } else if (pack_size == 5) {
-                        send_figure_frame(_ui_5_frame.data, 5U, 0x0103U);
-                    } else if (pack_size == 2) {
-                        send_figure_frame(_ui_2_frame.data, 2U, 0x0102U);
-                    } else {
-                        send_figure_frame(_ui_1_frame.data, 1U, 0x0101U);
-                    }
-                }
-                now_cap++;
+
                 ui_dirty_figure[i]--;
+                packed_count++;
+                total_figure--;
+            }
+
+            if (packed_count > 0U) {
+                if (pack_size == 7U) {
+                    send_figure_frame(_ui_7_frame.data, packed_count, ui_figure_cmd_id_from_count(packed_count));
+                } else if (pack_size == 5U) {
+                    send_figure_frame(_ui_5_frame.data, packed_count, ui_figure_cmd_id_from_count(packed_count));
+                } else if (pack_size == 2U) {
+                    send_figure_frame(_ui_2_frame.data, packed_count, ui_figure_cmd_id_from_count(packed_count));
+                } else {
+                    send_figure_frame(_ui_1_frame.data, 1U, 0x0101U);
+                }
+                sent_packets++;
+
+                if (total_figure > 0 && sent_packets < UI_MAX_FIGURE_PACKETS_PER_UPDATE) {
+                    osDelay(UI_FIGURE_PACKET_DELAY_MS);
+                }
+            } else {
+                break;
             }
         }
     }

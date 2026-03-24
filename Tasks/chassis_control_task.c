@@ -68,6 +68,7 @@ static uint8_t power_limit_active = 0;  // 功率限制激活标志
 static const int16_t VOLTAGE_LOW_THRESHOLD = 550;    // 低电压阈值 (5.5V x100)
 static const int16_t VOLTAGE_HIGH_THRESHOLD = 1000;  // 恢复电压阈值 (10.0V x100)
 static const float SPEED_SCALE_FACTOR = 0.5f;        // 速度缩放比例 (50%)
+static const float ROTATION_SPEED_SCALE = 2.0f;      // 自转速度倍率
 
 static const uint16_t T_LIST[] = {
 
@@ -276,6 +277,10 @@ void chassis_control_task() {
         }
         else {
             velocity_turn = 0;
+        }
+
+        if (robot_ctrl.chassis_mode == CHASSIS_FOLLOW || robot_ctrl.chassis_mode == CHASSIS_SPIN) {
+            velocity_turn *= ROTATION_SPEED_SCALE;
         }
 
         // -------------------------------------------------------------

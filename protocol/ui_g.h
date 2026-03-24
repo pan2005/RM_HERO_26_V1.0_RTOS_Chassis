@@ -8,12 +8,12 @@
 
 #include "ui_interface.h"
 
-extern ui_interface_figure_t ui_g_now_figures[9];
-extern uint8_t ui_g_dirty_figure[9];
+extern ui_interface_figure_t ui_g_now_figures[13];
+extern uint8_t ui_g_dirty_figure[13];
 extern ui_interface_string_t ui_g_now_strings[5];
 extern uint8_t ui_g_dirty_string[5];
 
-extern uint8_t ui_g_max_send_count[14];
+extern uint8_t ui_g_max_send_count[18];
 
 #define ui_g_Ungroup_CAP_voltage_number ((ui_interface_number_t*)&(ui_g_now_figures[0]))
 #define ui_g_Ungroup_PWR_power_number ((ui_interface_number_t*)&(ui_g_now_figures[1]))
@@ -24,6 +24,10 @@ extern uint8_t ui_g_max_send_count[14];
 #define ui_g_Ungroup_Automode ((ui_interface_number_t*)&(ui_g_now_figures[6]))
 #define ui_g_Ungroup_FireMode ((ui_interface_number_t*)&(ui_g_now_figures[7]))
 #define ui_g_Ungroup_TRIG_current_number ((ui_interface_number_t*)&(ui_g_now_figures[8]))
+#define ui_g_Ungroup_AimLine_top ((ui_interface_line_t*)&(ui_g_now_figures[9]))
+#define ui_g_Ungroup_AimLine_mid ((ui_interface_line_t*)&(ui_g_now_figures[10]))
+#define ui_g_Ungroup_AimLine_low ((ui_interface_line_t*)&(ui_g_now_figures[11]))
+#define ui_g_Ungroup_AimLine_vertical ((ui_interface_line_t*)&(ui_g_now_figures[12]))
 
 #define ui_g_Ungroup_CAP (&(ui_g_now_strings[0]))
 #define ui_g_Ungroup_Power (&(ui_g_now_strings[1]))
@@ -40,12 +44,16 @@ extern uint8_t ui_g_max_send_count[14];
 #define ui_g_Ungroup_Automode_max_send_count (ui_g_max_send_count[6])
 #define ui_g_Ungroup_FireMode_max_send_count (ui_g_max_send_count[7])
 #define ui_g_Ungroup_TRIG_current_number_max_send_count (ui_g_max_send_count[8])
+#define ui_g_Ungroup_AimLine_top_max_send_count (ui_g_max_send_count[9])
+#define ui_g_Ungroup_AimLine_mid_max_send_count (ui_g_max_send_count[10])
+#define ui_g_Ungroup_AimLine_low_max_send_count (ui_g_max_send_count[11])
+#define ui_g_Ungroup_AimLine_vertical_max_send_count (ui_g_max_send_count[12])
 
-#define ui_g_Ungroup_CAP_max_send_count (ui_g_max_send_count[9])
-#define ui_g_Ungroup_Power_max_send_count (ui_g_max_send_count[10])
-#define ui_g_Ungroup_AUTO_max_send_count (ui_g_max_send_count[11])
-#define ui_g_Ungroup_fire_max_send_count (ui_g_max_send_count[12])
-#define ui_g_Ungroup_TRIG_max_send_count (ui_g_max_send_count[13])
+#define ui_g_Ungroup_CAP_max_send_count (ui_g_max_send_count[13])
+#define ui_g_Ungroup_Power_max_send_count (ui_g_max_send_count[14])
+#define ui_g_Ungroup_AUTO_max_send_count (ui_g_max_send_count[15])
+#define ui_g_Ungroup_fire_max_send_count (ui_g_max_send_count[16])
+#define ui_g_Ungroup_TRIG_max_send_count (ui_g_max_send_count[17])
 
 #ifdef MANUAL_DIRTY
 #define ui_g_Ungroup_CAP_voltage_number_dirty (ui_g_dirty_figure[0])
@@ -57,6 +65,10 @@ extern uint8_t ui_g_max_send_count[14];
 #define ui_g_Ungroup_Automode_dirty (ui_g_dirty_figure[6])
 #define ui_g_Ungroup_FireMode_dirty (ui_g_dirty_figure[7])
 #define ui_g_Ungroup_TRIG_current_number_dirty (ui_g_dirty_figure[8])
+#define ui_g_Ungroup_AimLine_top_dirty (ui_g_dirty_figure[9])
+#define ui_g_Ungroup_AimLine_mid_dirty (ui_g_dirty_figure[10])
+#define ui_g_Ungroup_AimLine_low_dirty (ui_g_dirty_figure[11])
+#define ui_g_Ungroup_AimLine_vertical_dirty (ui_g_dirty_figure[12])
 
 #define ui_g_Ungroup_CAP_dirty (ui_g_dirty_string[0])
 #define ui_g_Ungroup_Power_dirty (ui_g_dirty_string[1])
